@@ -10,10 +10,13 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <algorithm>
 #include <cassert>
+#include <clocale>
 #include <cstdlib>
 #include <functional>
 #include <list>
+#include <memory>
 #include <utility>
 
 #include "container/hash/extendible_hash_table.h"
@@ -23,7 +26,9 @@ namespace bustub {
 
 template <typename K, typename V>
 ExtendibleHashTable<K, V>::ExtendibleHashTable(size_t bucket_size)
-    : global_depth_(0), bucket_size_(bucket_size), num_buckets_(1) {}
+    : global_depth_(0), bucket_size_(bucket_size), num_buckets_(1) {
+      dir_.push_back(std::make_shared<Bucket>(bucket_size_));
+    }
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::IndexOf(const K &key) -> size_t {
@@ -66,16 +71,55 @@ auto ExtendibleHashTable<K, V>::GetNumBucketsInternal() const -> int {
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::Find(const K &key, V &value) -> bool {
-  return false;
+  std::scoped_lock<std::mutex> lock(latch_);
+  auto index = IndexOf(key);
+  bool ret = dir_[index]->Find(key, value);
+  return ret;
 }
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::Remove(const K &key) -> bool {
-  return false;
+  std::scoped_lock<std::mutex> lock(latch_);
+  auto index = IndexOf(key);
+  bool ret = dir_[index]->Remove(key);
+  return ret;
 }
 
 template <typename K, typename V>
-void ExtendibleHashTable<K, V>::Insert(const K &key, const V &value) {}
+void ExtendibleHashTable<K, V>::Insert(const K &key, const V &value) {
+  std::scoped_lock<std::mutex> lock(latch_);
+  auto index = IndexOf(key);
+  bool success;
+  while (!(success = dir_[index]->Insert(key, value))) {
+    // fail to insert directly
+    auto local = GetLocalDepthInternal(index);
+    int mask = (1 << local) - 1;
+    dir_[index]->IncrementDepth();
+    std::shared_ptr<Bucket> new_bucket = std::make_shared<Bucket>(bucket_size_, local + 1);
+    if (local < global_depth_) {
+      // dont need to resize the array
+      for (int i = (1 << (local + 1)) + mask; i < 1 << global_depth_; i += 1 << (local + 1)) {
+        dir_[i] = new_bucket;
+      } 
+    } else {
+      // resize the array
+      dir_.resize(num_buckets_ * 2);
+      global_depth_++;
+      // copy the origin point
+      for (int i = 0; i < num_buckets_; i++) {
+        dir_[num_buckets_ + i] = dir_[num_buckets_];
+      }
+      num_buckets_ *= 2;
+      dir_[(1 << (local + 1)) + mask] = new_bucket;
+    }
+    // reshuffle the bucket
+    auto old_items = std::move(dir_[index]->GetItems());
+    for (auto &elem : old_items) {
+      auto i = IndexOf(elem.first);
+      dir_[i]->Insert(elem.first, elem.second);
+    }
+  }
+}
 
 //===--------------------------------------------------------------------===//
 // Bucket
@@ -85,17 +129,42 @@ ExtendibleHashTable<K, V>::Bucket::Bucket(size_t array_size, int depth) : size_(
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::Bucket::Find(const K &key, V &value) -> bool {
-  return false;
+  auto cmp = [&key](std::pair<K, V> &elem) {return elem.first == key;};
+  auto success = std::find_if(list_.begin(), list_.end(), cmp);
+  if (success == list_.end()) {
+    return false;
+  }
+  value = (*success).second;
+  return true;
 }
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::Bucket::Remove(const K &key) -> bool {
-  return false;
+  auto cmp = [&key](std::pair<K, V> &elem) {return elem.first == key;};
+  // judge whether exist the pair
+  auto success = std::find_if(list_.begin(), list_.end(), cmp);
+  if (success == list_.end()) {
+    return false;
+  }
+  // remove it
+  list_.remove_if(cmp);
+  return true;
 }
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::Bucket::Insert(const K &key, const V &value) -> bool {
-  return false;
+  if (this->IsFull()) {
+    return false;
+  }
+  auto cmp = [&key](std::pair<K, V> &elem) {return elem.first == key;};
+  auto success = std::find_if(list_.begin(), list_.end(), cmp);
+  if (success != list_.end()) {
+    (*success).second = value;
+  } else {
+    list_.push_back({key, value});
+    size_++;
+  }
+  return true;
 }
 
 template class ExtendibleHashTable<page_id_t, Page *>;
