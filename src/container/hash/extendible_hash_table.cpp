@@ -93,12 +93,12 @@ void ExtendibleHashTable<K, V>::Insert(const K &key, const V &value) {
   while (!(success = dir_[index]->Insert(key, value))) {
     // fail to insert directly
     auto local = GetLocalDepthInternal(index);
-    int mask = (1 << local) - 1;
+    int mask = ((1 << local) - 1) & index;
     dir_[index]->IncrementDepth();
     std::shared_ptr<Bucket> new_bucket = std::make_shared<Bucket>(bucket_size_, local + 1);
     if (local < global_depth_) {
       // dont need to resize the array
-      for (int i = (1 << (local + 1)) + mask; i < 1 << global_depth_; i += 1 << (local + 1)) {
+      for (int i = (1 << local) + mask; i < (1 << global_depth_); i += 1 << (local + 1)) {
         dir_[i] = new_bucket;
       } 
     } else {
@@ -107,10 +107,10 @@ void ExtendibleHashTable<K, V>::Insert(const K &key, const V &value) {
       global_depth_++;
       // copy the origin point
       for (int i = 0; i < num_buckets_; i++) {
-        dir_[num_buckets_ + i] = dir_[num_buckets_];
+        dir_[num_buckets_ + i] = dir_[i];
       }
       num_buckets_ *= 2;
-      dir_[(1 << (local + 1)) + mask] = new_bucket;
+      dir_[(1 << local) + mask] = new_bucket;
     }
     // reshuffle the bucket
     auto old_items = std::move(dir_[index]->GetItems());
@@ -162,7 +162,6 @@ auto ExtendibleHashTable<K, V>::Bucket::Insert(const K &key, const V &value) -> 
     (*success).second = value;
   } else {
     list_.push_back({key, value});
-    size_++;
   }
   return true;
 }
