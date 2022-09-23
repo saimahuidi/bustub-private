@@ -180,5 +180,7 @@ class BufferPoolManagerInstance : public BufferPoolManager {
   std::mutex latch_;
 
   // TODO(student): You may add additional private members and helper functions
+private:
+  auto FindFreeFrame(frame_id_t &frame_id) -> bool;
 };
 }  // namespace bustub
