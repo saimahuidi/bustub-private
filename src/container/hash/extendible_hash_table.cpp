@@ -153,14 +153,14 @@ auto ExtendibleHashTable<K, V>::Bucket::Remove(const K &key) -> bool {
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::Bucket::Insert(const K &key, const V &value) -> bool {
-  if (this->IsFull()) {
-    return false;
-  }
   auto cmp = [&key](std::pair<K, V> &elem) {return elem.first == key;};
   auto success = std::find_if(list_.begin(), list_.end(), cmp);
   if (success != list_.end()) {
-    (*success).second = value;
+    success->second = value;
   } else {
+    if (this->IsFull()) {
+      return false;
+    }
     list_.push_back({key, value});
   }
   return true;
