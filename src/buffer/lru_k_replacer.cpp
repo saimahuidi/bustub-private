@@ -23,6 +23,9 @@ LRUKReplacer::LRUKReplacer(size_t num_frames, size_t k) : replacer_size_(num_fra
 
 auto LRUKReplacer::Evict(frame_id_t *frame_id) -> bool {
   std::scoped_lock<std::mutex> lock(latch_);
+  if (curr_size_ <= 0) {
+    return false;
+  }
   auto find_evictabel = [this](std::pair<frame_id_t, std::deque<size_t>> &elem) { return locator_[elem.first].second; };
   auto evict_record = std::find_if(list_.begin(), list_.end(), find_evictabel);
   if (evict_record == list_.end()) {
@@ -46,7 +49,7 @@ void LRUKReplacer::RecordAccess(frame_id_t frame_id) {
     new_record.second = std::move(locator_[frame_id].first->second);
     evictable = locator_[frame_id].second;
     list_.erase(locator_[frame_id].first);
-  } else if (static_cast<size_t>(frame_id) >= replacer_size_) {
+  } else if (static_cast<size_t>(frame_id) > replacer_size_) {
     // the frame_id is not vaild
     abort();
   }

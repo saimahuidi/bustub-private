@@ -99,7 +99,7 @@ void ExtendibleHashTable<K, V>::Insert(const K &key, const V &value) {
     std::shared_ptr<Bucket> new_bucket = std::make_shared<Bucket>(bucket_size_, local + 1);
     if (local < global_depth_) {
       // dont need to resize the array
-      for (int i = (1 << (global_depth_ - 1)) + mask; i < (1 << global_depth_); i += 1 << local) {
+      for (int i = (1 << local) + mask; i < (1 << global_depth_); i += (1 << (local + 1))) {
         dir_[i] = new_bucket;
       }
     } else {
@@ -148,7 +148,7 @@ auto ExtendibleHashTable<K, V>::Bucket::Remove(const K &key) -> bool {
     return false;
   }
   // remove it
-  list_.remove_if(cmp);
+  list_.erase(success);
   return true;
 }
 

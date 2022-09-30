@@ -34,6 +34,20 @@ TEST(ExtendibleHashTableTest, SampleTest) {
   EXPECT_EQ("h", result);
   table->Find(2, result);
   EXPECT_EQ("b", result);
+  table->Find(1, result);
+  EXPECT_EQ("a", result);
+  table->Find(2, result);
+  EXPECT_EQ("b", result);
+  table->Find(3, result);
+  EXPECT_EQ("c", result);
+  EXPECT_FALSE(table->Find(10, result));
+  table->Find(4, result);
+  EXPECT_EQ("d", result);
+  table->Find(5, result);
+  EXPECT_EQ("e", result);
+  table->Find(6, result);
+  EXPECT_EQ("f", result);
+  EXPECT_FALSE(table->Find(10, result));
   EXPECT_FALSE(table->Find(10, result));
 
   EXPECT_TRUE(table->Remove(8));
