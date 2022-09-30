@@ -12,12 +12,13 @@
 
 #pragma once
 
+#include <deque>
 #include <limits>
 #include <list>
 #include <mutex>  // NOLINT
 #include <unordered_map>
+#include <utility>
 #include <vector>
-#include <deque>
 
 #include "common/config.h"
 #include "common/macros.h"
@@ -134,13 +135,9 @@ class LRUKReplacer {
   auto Size() -> size_t;
 
  private:
-  auto IsFull() -> bool {
-    return list_.size() == replacer_size_;
-  }
+  auto IsFull() -> bool { return list_.size() == replacer_size_; }
 
-  auto GetTime() {
-    current_timestamp_ = std::time(nullptr);
-  }
+  auto GetTime() { current_timestamp_ = std::time(nullptr); }
 
   size_t current_timestamp_{0};
   size_t curr_size_{0};

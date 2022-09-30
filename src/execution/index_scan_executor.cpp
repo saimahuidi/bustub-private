@@ -18,5 +18,5 @@ IndexScanExecutor::IndexScanExecutor(ExecutorContext *exec_ctx, const IndexScanP
 void IndexScanExecutor::Init() { throw NotImplementedException("IndexScanExecutor is not implemented"); }
 
 auto IndexScanExecutor::Next(Tuple *tuple, RID *rid) -> bool { return false; }
-    
+
 }  // namespace bustub

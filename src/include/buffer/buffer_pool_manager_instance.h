@@ -177,7 +177,7 @@ class BufferPoolManagerInstance : public BufferPoolManager {
   }
 
   // TODO(student): You may add additional private members and helper functions
-private:
+ private:
   auto FindFreeFrame(frame_id_t &frame_id) -> bool;
 };
 }  // namespace bustub

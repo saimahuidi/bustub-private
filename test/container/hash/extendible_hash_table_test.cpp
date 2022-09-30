@@ -75,7 +75,6 @@ TEST(ExtendibleHashTableTest, Mytest) {
   table->Insert(0, "c");
   table->Insert(1, "a");
   EXPECT_EQ(1, table->GetGlobalDepth());
-
 }
 
 }  // namespace bustub

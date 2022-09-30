@@ -12,7 +12,7 @@
 
 #include "buffer/buffer_pool_manager_instance.h"
 #include <endian.h>
-#include <mutex>
+#include <mutex>  // NOLINT
 
 #include "common/config.h"
 #include "common/exception.h"
@@ -34,7 +34,6 @@ BufferPoolManagerInstance::BufferPoolManagerInstance(size_t pool_size, DiskManag
   for (size_t i = 0; i < pool_size_; ++i) {
     free_list_.emplace_back(static_cast<int>(i));
   }
-
 }
 
 BufferPoolManagerInstance::~BufferPoolManagerInstance() {
@@ -78,7 +77,7 @@ auto BufferPoolManagerInstance::NewPgImp(page_id_t *page_id) -> Page * {
   if (!FindFreeFrame(new_frame_id)) {
     return nullptr;
   }  // insert the new page
-  Page &new_page = pages_[new_frame_id]; 
+  Page &new_page = pages_[new_frame_id];
   replacer_->RecordAccess(new_frame_id);
   replacer_->SetEvictable(new_frame_id, false);
   new_page_id = AllocatePage();
@@ -165,7 +164,6 @@ auto BufferPoolManagerInstance::UnpinPgImp(page_id_t page_id, bool is_dirty) -> 
   }
   return true;
 }
-
 
 auto BufferPoolManagerInstance::AllocatePage() -> page_id_t { return next_page_id_++; }
 

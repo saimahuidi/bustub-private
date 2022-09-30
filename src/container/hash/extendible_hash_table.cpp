@@ -27,8 +27,8 @@ namespace bustub {
 template <typename K, typename V>
 ExtendibleHashTable<K, V>::ExtendibleHashTable(size_t bucket_size)
     : global_depth_(0), bucket_size_(bucket_size), num_buckets_(1) {
-      dir_.push_back(std::make_shared<Bucket>(bucket_size_));
-    }
+  dir_.push_back(std::make_shared<Bucket>(bucket_size_));
+}
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::IndexOf(const K &key) -> size_t {
@@ -99,9 +99,9 @@ void ExtendibleHashTable<K, V>::Insert(const K &key, const V &value) {
     std::shared_ptr<Bucket> new_bucket = std::make_shared<Bucket>(bucket_size_, local + 1);
     if (local < global_depth_) {
       // dont need to resize the array
-      for (int i = (1 << local) + mask; i < (1 << global_depth_); i += 1 << (local + 1)) {
+      for (int i = (1 << (global_depth_ - 1)) + mask; i < (1 << global_depth_); i += 1 << local) {
         dir_[i] = new_bucket;
-      } 
+      }
     } else {
       // resize the array
       dir_.resize(num_buckets_ * 2);
@@ -130,7 +130,7 @@ ExtendibleHashTable<K, V>::Bucket::Bucket(size_t array_size, int depth) : size_(
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::Bucket::Find(const K &key, V &value) -> bool {
-  auto cmp = [&key](std::pair<K, V> &elem) {return elem.first == key;};
+  auto cmp = [&key](std::pair<K, V> &elem) { return elem.first == key; };
   auto success = std::find_if(list_.begin(), list_.end(), cmp);
   if (success == list_.end()) {
     return false;
@@ -141,7 +141,7 @@ auto ExtendibleHashTable<K, V>::Bucket::Find(const K &key, V &value) -> bool {
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::Bucket::Remove(const K &key) -> bool {
-  auto cmp = [&key](std::pair<K, V> &elem) {return elem.first == key;};
+  auto cmp = [&key](std::pair<K, V> &elem) { return elem.first == key; };
   // judge whether exist the pair
   auto success = std::find_if(list_.begin(), list_.end(), cmp);
   if (success == list_.end()) {
@@ -154,7 +154,7 @@ auto ExtendibleHashTable<K, V>::Bucket::Remove(const K &key) -> bool {
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::Bucket::Insert(const K &key, const V &value) -> bool {
-  auto cmp = [&key](std::pair<K, V> &elem) {return elem.first == key;};
+  auto cmp = [&key](std::pair<K, V> &elem) { return elem.first == key; };
   auto success = std::find_if(list_.begin(), list_.end(), cmp);
   if (success != list_.end()) {
     success->second = value;
