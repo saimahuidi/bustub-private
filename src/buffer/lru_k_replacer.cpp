@@ -13,6 +13,7 @@
 #include "buffer/lru_k_replacer.h"
 #include <algorithm>
 #include <cstddef>
+#include <cstdio>
 #include <cstdlib>
 #include <mutex>  // NOLINT
 #include <utility>
@@ -51,6 +52,7 @@ void LRUKReplacer::RecordAccess(frame_id_t frame_id) {
     list_.erase(locator_[frame_id].first);
   } else if (static_cast<size_t>(frame_id) > replacer_size_) {
     // the frame_id is not vaild
+    std::printf("not vaild-frameid\n");
     abort();
   }
   // record the newest timestamp
@@ -87,6 +89,7 @@ void LRUKReplacer::SetEvictable(frame_id_t frame_id, bool set_evictable) {
     }
     locator_[frame_id].second = set_evictable;
   } else {
+    std::printf("no frameid\n");
     abort();
   }
 }
@@ -99,6 +102,7 @@ void LRUKReplacer::Remove(frame_id_t frame_id) {
   }
   // not evictable
   if (!locator_[frame_id].second) {
+    std::printf("not evictable\n");
     abort();
   }
   // common case

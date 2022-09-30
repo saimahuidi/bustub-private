@@ -133,5 +133,8 @@ TEST(LRUKReplacerTest, MyTest) {
   ASSERT_EQ(4, value);
   lru_replacer.Evict(&value);
   ASSERT_EQ(5, value);
+  lru_replacer.SetEvictable(6, true);
+  lru_replacer.Evict(&value);
+  ASSERT_EQ(6, value);
 }
 }  // namespace bustub
