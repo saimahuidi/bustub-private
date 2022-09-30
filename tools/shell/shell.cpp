@@ -1,45 +1,75 @@
 #include <iostream>
+#include <string>
 #include "binder/binder.h"
 #include "common/bustub_instance.h"
 #include "common/exception.h"
 #include "common/util/string_util.h"
+#include "linenoise/linenoise.h"
 
-auto main() -> int {
-
-  // TODO(chi): add Bustub class with a `execute_sql` interface, instead of setting up everything here.
-
-  std::string query;
-
+auto main(int argc, char **argv) -> int {
   auto bustub = std::make_unique<bustub::BustubInstance>("test.db");
 
-  std::cout << "Note: This shell will be able to enter interactive mode only after you have completed the buffer pool manager. It will be able to execute SQL queries after you have implemented necessary query executors." << std::endl << std::endl;
+  std::cout << "Note: This shell will be able to run `create table` only after you have completed the buffer pool "
+               "manager. It will be able to execute SQL queries after you have implemented necessary query executors."
+            << std::endl
+            << std::endl;
 
-  // Generate test tables
-  // TODO(chi): remove after we finished bind / execute create table and insert.
-  bustub->GenerateTestTable();
+  auto default_prompt = "bustub> ";
+  auto emoji_prompt = "\U0001f6c1> ";  // the bathtub emoji
+  bool use_emoji_prompt = false;
+  bool disable_tty = false;
 
-  std::cout << "Welcome to the BusTub shell! Type \\help to learn more." << std::endl << std::endl;
-
-  while (true) {
-    std::cout << "> ";
-    std::getline(std::cin, query);
-    if (!std::cin) {
+  for (int i = 1; i < argc; i++) {
+    if (strcmp(argv[i], "--emoji-prompt") == 0) {
+      use_emoji_prompt = true;
       break;
     }
-
-    std::cout << query << std::endl;
-
-    try {
-      auto result = bustub->ExecuteSql(query);
-      for (const auto &line : result) {
-        std::cout << line << std::endl;
-      }
-    } catch (bustub::Exception &ex) {
-      std::cerr << ex.what() << std::endl;
+    if (strcmp(argv[i], "--disable-tty") == 0) {
+      disable_tty = true;
+      break;
     }
   }
 
-  // unreachable
+  // Generate test tables
+  // TODO(chi): remove after we finished bind / execute create table and insert.
+  bustub->GenerateMockTable();
+
+  std::cout << "Welcome to the BusTub shell! Type \\help to learn more." << std::endl << std::endl;
+
+  linenoiseHistorySetMaxLen(1024);
+
+  if (disable_tty) {
+    std::string query;
+    while (true) {
+      std::getline(std::cin, query);
+      if (!std::cin) {
+        break;
+      }
+      try {
+        auto result = bustub->ExecuteSql(query);
+        for (const auto &line : result) {
+          std::cout << line << std::endl;
+        }
+      } catch (bustub::Exception &ex) {
+        std::cerr << ex.what() << std::endl;
+      }
+    }
+  } else {
+    char *query_c_str;
+    while ((query_c_str = linenoise(use_emoji_prompt ? emoji_prompt : default_prompt)) != nullptr) {
+      std::string query(query_c_str);
+      linenoiseHistoryAdd(query_c_str);
+      linenoiseFree(query_c_str);
+      try {
+        auto result = bustub->ExecuteSql(query);
+        for (const auto &line : result) {
+          std::cout << line << std::endl;
+        }
+      } catch (bustub::Exception &ex) {
+        std::cerr << ex.what() << std::endl;
+      }
+    }
+  }
 
   return 0;
 }

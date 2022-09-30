@@ -15,6 +15,7 @@
 #include <mutex>
 
 #include "common/config.h"
+#include "common/exception.h"
 #include "common/macros.h"
 #include "storage/disk/disk_manager.h"
 #include "storage/page/page.h"
@@ -33,6 +34,7 @@ BufferPoolManagerInstance::BufferPoolManagerInstance(size_t pool_size, DiskManag
   for (size_t i = 0; i < pool_size_; ++i) {
     free_list_.emplace_back(static_cast<int>(i));
   }
+
 }
 
 BufferPoolManagerInstance::~BufferPoolManagerInstance() {
@@ -163,6 +165,7 @@ auto BufferPoolManagerInstance::UnpinPgImp(page_id_t page_id, bool is_dirty) -> 
   }
   return true;
 }
+
 
 auto BufferPoolManagerInstance::AllocatePage() -> page_id_t { return next_page_id_++; }
 

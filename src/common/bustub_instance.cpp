@@ -1,15 +1,22 @@
 #include "common/bustub_instance.h"
 #include "binder/binder.h"
+#include "binder/bound_expression.h"
 #include "binder/bound_statement.h"
+#include "binder/statement/create_statement.h"
+#include "binder/statement/explain_statement.h"
 #include "binder/statement/select_statement.h"
 #include "buffer/buffer_pool_manager_instance.h"
+#include "catalog/schema.h"
 #include "catalog/table_generator.h"
+#include "common/enums/statement_type.h"
+#include "common/exception.h"
 #include "concurrency/lock_manager.h"
 #include "execution/execution_engine.h"
 #include "execution/executor_context.h"
 #include "execution/expressions/abstract_expression.h"
 #include "execution/plans/abstract_plan.h"
 #include "fmt/format.h"
+#include "optimizer/optimizer.h"
 #include "planner/planner.h"
 #include "recovery/checkpoint_manager.h"
 #include "recovery/log_manager.h"
@@ -32,7 +39,14 @@ BustubInstance::BustubInstance(const std::string &db_file_name) {
   // Log related.
   log_manager_ = new LogManager(disk_manager_);
 
-  buffer_pool_manager_ = new BufferPoolManagerInstance(BUFFER_POOL_SIZE, disk_manager_, LRUK_REPLACER_K, log_manager_);
+  // We need more frames for GenerateTestTable to work. Therefore, we use 128 instead of the default
+  // buffer pool size specified in `config.h`.
+  try {
+    buffer_pool_manager_ = new BufferPoolManagerInstance(128, disk_manager_, LRUK_REPLACER_K, log_manager_);
+  } catch (NotImplementedException &e) {
+    std::cerr << "BufferPoolManager is not implemented, only mock tables are supported." << std::endl;
+    buffer_pool_manager_ = nullptr;
+  }
 
   // Transaction (txn) related.
   lock_manager_ = new LockManager();
@@ -74,27 +88,58 @@ auto BustubInstance::ExecuteSql(const std::string &sql) -> std::vector<std::stri
     throw Exception(fmt::format("unsupported internal command: {}", sql));
   }
 
-  bustub::Binder binder;
-  binder.ParseAndBindQuery(sql, *catalog_);
+  bustub::Binder binder(*catalog_);
+  binder.ParseAndBindQuery(sql);
   std::vector<std::string> result = {};
   for (const auto &statement : binder.statements_) {
-    // Bind the query.
-    std::cerr << "=== BINDER ===" << std::endl;
-    std::cerr << statement->ToString() << std::endl;
+    switch (statement->type_) {
+      case StatementType::CREATE_STATEMENT: {
+        const auto &create_stmt = dynamic_cast<const CreateStatement &>(*statement);
+        auto txn = transaction_manager_->Begin();
+        catalog_->CreateTable(txn, create_stmt.table_, Schema(create_stmt.columns_));
+        transaction_manager_->Commit(txn);
+        delete txn;
+        continue;
+      }
+      case StatementType::EXPLAIN_STATEMENT: {
+        const auto &explain_stmt = dynamic_cast<const ExplainStatement &>(*statement);
+
+        // Print binder result.
+        std::cerr << "=== BINDER ===" << std::endl;
+        std::cerr << statement->ToString() << std::endl;
+
+        // Print planner result.
+        bustub::Planner planner(*catalog_);
+        planner.PlanQuery(*explain_stmt.statement_);
+        std::cerr << "=== PLANNER ===" << std::endl;
+        std::cerr << planner.plan_->ToString() << std::endl;
+
+        // Print optimizer result.
+        bustub::Optimizer optimizer(*catalog_);
+        auto optimized_plan = optimizer.Optimize(planner.plan_);
+        std::cerr << "=== OPTIMIZER ===" << std::endl;
+        std::cerr << optimized_plan->ToString() << std::endl;
+        continue;
+      }
+      default:
+        break;
+    }
 
     // Plan the query.
     bustub::Planner planner(*catalog_);
     planner.PlanQuery(*statement);
-    std::cerr << "=== PLANNER ===" << std::endl;
-    std::cerr << planner.plan_->ToString() << std::endl;
+
+    // Optimize the query.
+    bustub::Optimizer optimizer(*catalog_);
+    auto optimized_plan = optimizer.Optimize(planner.plan_);
 
     // Execute the query.
     auto txn = transaction_manager_->Begin();
     auto exec_ctx = MakeExecutorContext(txn);
     std::vector<Tuple> result_set{};
-    execution_engine_->Execute(planner.plan_.get(), &result_set, txn, exec_ctx.get());
+    execution_engine_->Execute(optimized_plan, &result_set, txn, exec_ctx.get());
 
-    // TODO(chi): commit or abort the transaction.
+    transaction_manager_->Commit(txn);
     delete txn;
 
     // Return the result set as a vector of string.
@@ -102,7 +147,7 @@ auto BustubInstance::ExecuteSql(const std::string &sql) -> std::vector<std::stri
 
     // Generate header for the result set.
     std::string header;
-    for (const auto &column : schema->GetColumns()) {
+    for (const auto &column : schema.GetColumns()) {
       header += column.GetName();
       header += "\t";
     }
@@ -111,8 +156,8 @@ auto BustubInstance::ExecuteSql(const std::string &sql) -> std::vector<std::stri
     // Transforming result set into strings.
     for (const auto &tuple : result_set) {
       std::string row;
-      for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
-        row += tuple.GetValue(schema, i).ToString();
+      for (uint32_t i = 0; i < schema.GetColumnCount(); i++) {
+        row += tuple.GetValue(&schema, i).ToString();
         row += "\t";
       }
       result.emplace_back(std::move(row));
@@ -131,6 +176,34 @@ void BustubInstance::GenerateTestTable() {
   auto exec_ctx = MakeExecutorContext(txn);
   TableGenerator gen{exec_ctx.get()};
   gen.GenerateTestTables();
+
+  transaction_manager_->Commit(txn);
+  delete txn;
+}
+
+/**
+ * FOR TEST ONLY. Generate test tables in this BusTub instance.
+ * It's used in the shell to predefine some tables, as we don't support
+ * create / drop table and insert for now. Should remove it in the future.
+ */
+void BustubInstance::GenerateMockTable() {
+  // The actual content generated by mock scan executors are described in `mock_scan_executor.cpp`.
+  auto txn = transaction_manager_->Begin();
+  std::vector<Column> mock_table_1_columns{Column{"colA", TypeId::INTEGER}, {Column{"colB", TypeId::INTEGER}}};
+  std::vector<Column> mock_table_2_columns{Column{"colC", TypeId::VARCHAR, 128},
+                                           {Column{"colD", TypeId::VARCHAR, 128}}};
+  std::vector<Column> mock_table_3_columns{Column{"colE", TypeId::INTEGER}, {Column{"colF", TypeId::VARCHAR, 128}}};
+
+  auto mock_table_1_schema = Schema(mock_table_1_columns);
+  catalog_->CreateTable(txn, "__mock_table_1", mock_table_1_schema, false);
+
+  auto mock_table_2_schema = Schema(mock_table_2_columns);
+  catalog_->CreateTable(txn, "__mock_table_2", mock_table_2_schema, false);
+
+  auto mock_table_3_schema = Schema(mock_table_3_columns);
+  catalog_->CreateTable(txn, "__mock_table_3", mock_table_3_schema, false);
+
+  transaction_manager_->Commit(txn);
   delete txn;
 }
 
