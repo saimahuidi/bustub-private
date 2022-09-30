@@ -32,10 +32,10 @@ void Planner::PlanQuery(const BoundStatement &statement) {
       plan_ = PlanInsert(dynamic_cast<const InsertStatement &>(statement));
       return;
     }
-    // case StatementType::DELETE_STATEMENT: {
-    //   plan_ = PlanDelete(dynamic_cast<const DeleteStatement &>(statement));
-    //   return;
-    // }
+    case StatementType::DELETE_STATEMENT: {
+      plan_ = PlanDelete(dynamic_cast<const DeleteStatement &>(statement));
+      return;
+    }
     default:
       throw Exception(fmt::format("the statement {} is not supported in planner yet", statement.type_));
   }
