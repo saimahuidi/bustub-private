@@ -92,6 +92,7 @@ void ExtendibleHashTable<K, V>::Insert(const K &key, const V &value) {
   bool success;
   while (!(success = dir_[index]->Insert(key, value))) {
     // fail to insert directly
+    auto old_items = std::move(dir_[index]->GetItems());
     auto local = GetLocalDepthInternal(index);
     int mask = ((1 << local) - 1) & index;
     dir_[index]->IncrementDepth();
@@ -113,11 +114,11 @@ void ExtendibleHashTable<K, V>::Insert(const K &key, const V &value) {
       dir_[(1 << local) + mask] = new_bucket;
     }
     // reshuffle the bucket
-    auto old_items = std::move(dir_[index]->GetItems());
     for (auto &elem : old_items) {
       auto i = IndexOf(elem.first);
       dir_[i]->Insert(elem.first, elem.second);
     }
+    index = IndexOf(key);
   }
 }
 

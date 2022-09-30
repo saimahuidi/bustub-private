@@ -68,4 +68,14 @@ TEST(ExtendibleHashTableTest, ConcurrentInsertTest) {
   }
 }
 
+TEST(ExtendibleHashTableTest, Mytest) {
+  auto table = std::make_unique<ExtendibleHashTable<int, std::string>>(2);
+
+  table->Insert(2, "b");
+  table->Insert(0, "c");
+  table->Insert(1, "a");
+  EXPECT_EQ(1, table->GetGlobalDepth());
+
+}
+
 }  // namespace bustub
