@@ -12,6 +12,7 @@
 
 #include "buffer/lru_k_replacer.h"
 #include <algorithm>
+#include <chrono>
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
@@ -20,17 +21,20 @@
 
 namespace bustub {
 
-LRUKReplacer::LRUKReplacer(size_t num_frames, size_t k) : replacer_size_(num_frames), k_(k) {}
+LRUKReplacer::LRUKReplacer(size_t num_frames, size_t k) : replacer_size_(num_frames), k_(k) {
+  start_ = std::chrono::steady_clock::now();
+}
 
 auto LRUKReplacer::Evict(frame_id_t *frame_id) -> bool {
   std::scoped_lock<std::mutex> lock(latch_);
   if (curr_size_ <= 0) {
     return false;
   }
-  auto find_evictabel = [this](std::pair<frame_id_t, std::deque<size_t>> &elem) { return locator_[elem.first].second; };
-  auto evict_record = std::find_if(list_.begin(), list_.end(), find_evictabel);
-  if (evict_record == list_.end()) {
-    return false;
+  auto evict_record = list_.begin();
+  for (; evict_record != list_.end(); evict_record++) {
+    if (locator_[evict_record->first].second) {
+      break;
+    }
   }
   auto evict_id = evict_record->first;
   list_.erase(evict_record);
@@ -52,8 +56,7 @@ void LRUKReplacer::RecordAccess(frame_id_t frame_id) {
     list_.erase(locator_[frame_id].first);
   } else if (static_cast<size_t>(frame_id) > replacer_size_) {
     // the frame_id is not vaild
-    std::printf("not vaild-frameid\n");
-    abort();
+    return;
   }
   // record the newest timestamp
   new_record.second.push_back(current_timestamp_);
@@ -89,8 +92,7 @@ void LRUKReplacer::SetEvictable(frame_id_t frame_id, bool set_evictable) {
     }
     locator_[frame_id].second = set_evictable;
   } else {
-    std::printf("no frameid\n");
-    abort();
+    return;
   }
 }
 
@@ -102,8 +104,7 @@ void LRUKReplacer::Remove(frame_id_t frame_id) {
   }
   // not evictable
   if (!locator_[frame_id].second) {
-    std::printf("not evictable\n");
-    abort();
+    return;
   }
   // common case
   list_.erase(locator_[frame_id].first);

@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <bits/chrono.h>
+#include <chrono>
 #include <deque>
 #include <limits>
 #include <list>
@@ -135,13 +137,17 @@ class LRUKReplacer {
   auto Size() -> size_t;
 
  private:
-  auto IsFull() -> bool { return list_.size() == replacer_size_; }
+  auto IsFull() -> bool { return list_.size() >= replacer_size_; }
 
-  auto GetTime() { current_timestamp_ = std::time(nullptr); }
+  auto GetTime() {
+    auto end = std::chrono::steady_clock::now();
+    current_timestamp_ = std::chrono::duration_cast<std::chrono::microseconds>(end - start_).count();
+  }
 
   size_t current_timestamp_{0};
   size_t curr_size_{0};
   size_t replacer_size_;
+  std::chrono::time_point<std::chrono::steady_clock> start_;
   size_t k_;
   std::mutex latch_;
   std::list<std::pair<frame_id_t, std::deque<size_t>>> list_;

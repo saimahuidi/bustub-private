@@ -26,7 +26,7 @@ namespace bustub {
 
 template <typename K, typename V>
 ExtendibleHashTable<K, V>::ExtendibleHashTable(size_t bucket_size)
-    : global_depth_(0), bucket_size_(bucket_size), num_buckets_(1) {
+    : global_depth_(0), bucket_size_(bucket_size), num_buckets_(1), num_dir_(1) {
   dir_.push_back(std::make_shared<Bucket>(bucket_size_));
 }
 
@@ -102,15 +102,17 @@ void ExtendibleHashTable<K, V>::Insert(const K &key, const V &value) {
       for (int i = (1 << local) + mask; i < (1 << global_depth_); i += (1 << (local + 1))) {
         dir_[i] = new_bucket;
       }
+      num_buckets_++;
     } else {
       // resize the array
-      dir_.resize(num_buckets_ * 2);
+      dir_.resize(num_dir_ * 2);
       global_depth_++;
       // copy the origin point
-      for (int i = 0; i < num_buckets_; i++) {
-        dir_[num_buckets_ + i] = dir_[i];
+      for (int i = 0; i < num_dir_; i++) {
+        dir_[num_dir_ + i] = dir_[i];
       }
-      num_buckets_ *= 2;
+      num_dir_ *= 2;
+      num_buckets_++;
       dir_[(1 << local) + mask] = new_bucket;
     }
     // reshuffle the bucket
