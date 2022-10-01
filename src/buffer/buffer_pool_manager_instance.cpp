@@ -136,12 +136,19 @@ auto BufferPoolManagerInstance::DeletePgImp(page_id_t page_id) -> bool {
   std::scoped_lock buffer_lock(latch_);
   frame_id_t frame_id;
   if (!page_table_->Find(page_id, frame_id)) {
+    return true;
+  }
+  if (pages_[frame_id].pin_count_ > 0) {
     return false;
   }
   page_table_->Remove(page_id);
   replacer_->Remove(frame_id);
   free_list_.push_back(frame_id);
   Page &old_page = pages_[frame_id];
+  if (old_page.IsDirty()) {
+    disk_manager_->WritePage(page_id, pages_[frame_id].GetData());
+    pages_[frame_id].is_dirty_ = false;
+  }
   old_page.page_id_ = INVALID_PAGE_ID;
   old_page.is_dirty_ = false;
   old_page.pin_count_ = 0;
@@ -153,12 +160,12 @@ auto BufferPoolManagerInstance::DeletePgImp(page_id_t page_id) -> bool {
 auto BufferPoolManagerInstance::UnpinPgImp(page_id_t page_id, bool is_dirty) -> bool {
   std::scoped_lock buffer_lock(latch_);
   frame_id_t frame_id;
-  if (!page_table_->Find(page_id, frame_id)) {
+  if (!page_table_->Find(page_id, frame_id) || pages_[frame_id].pin_count_ <= 0) {
     return false;
   }
   Page &old_page = pages_[frame_id];
   old_page.pin_count_--;
-  old_page.is_dirty_ |= is_dirty;
+  old_page.is_dirty_ = old_page.is_dirty_ || is_dirty;
   if (old_page.pin_count_ == 0) {
     replacer_->SetEvictable(frame_id, true);
   }

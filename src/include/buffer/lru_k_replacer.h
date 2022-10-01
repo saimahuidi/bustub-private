@@ -13,7 +13,7 @@
 #pragma once
 
 #include <bits/chrono.h>
-#include <chrono>
+#include <chrono> // NOLINT
 #include <deque>
 #include <limits>
 #include <list>

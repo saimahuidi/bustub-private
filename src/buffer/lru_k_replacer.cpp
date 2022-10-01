@@ -12,7 +12,7 @@
 
 #include "buffer/lru_k_replacer.h"
 #include <algorithm>
-#include <chrono>
+#include <chrono> // NOLINT
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
