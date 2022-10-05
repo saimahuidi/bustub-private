@@ -10,9 +10,13 @@
 //===----------------------------------------------------------------------===//
 #pragma once
 
+#include <optional>
 #include <utility>
 #include <vector>
 
+#include "buffer/buffer_pool_manager.h"
+#include "buffer/buffer_pool_manager_instance.h"
+#include "common/config.h"
 #include "storage/page/b_plus_tree_page.h"
 
 namespace bustub {
@@ -49,7 +53,8 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   auto GetNextPageId() const -> page_id_t;
   void SetNextPageId(page_id_t next_page_id);
   auto KeyAt(int index) const -> KeyType;
-
+  auto GetValue(const KeyType &key, const KeyComparator &comparator, std::vector<ValueType> *result = nullptr) -> bool;
+  auto InsertEntry(const KeyType &key, const ValueType &value, const KeyComparator &comparator, KeyType * = nullptr, Page * = nullptr) -> bool;
  private:
   page_id_t next_page_id_;
   // Flexible array member for page data.

@@ -14,6 +14,7 @@
 
 #include <list>
 #include <mutex>  // NOLINT
+#include <shared_mutex>
 #include <unordered_map>
 
 #include "buffer/buffer_pool_manager.h"
@@ -160,7 +161,7 @@ class BufferPoolManagerInstance : public BufferPoolManager {
   /** List of free frames that don't have any pages on them. */
   std::list<frame_id_t> free_list_;
   /** This latch protects shared data structures. We recommend updating this comment to describe what it protects. */
-  std::mutex latch_;
+  std::shared_mutex rwlatch_;
 
   /**
    * @brief Allocate a page on disk. Caller should acquire the latch before calling this function.

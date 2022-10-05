@@ -13,11 +13,12 @@
 #pragma once
 
 #include <bits/chrono.h>
-#include <chrono> // NOLINT
+#include <chrono>  // NOLINT
 #include <deque>
 #include <limits>
 #include <list>
 #include <mutex>  // NOLINT
+#include <shared_mutex>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -149,7 +150,7 @@ class LRUKReplacer {
   size_t replacer_size_;
   std::chrono::time_point<std::chrono::steady_clock> start_;
   size_t k_;
-  std::mutex latch_;
+  std::shared_mutex rwlatch_;
   std::list<std::pair<frame_id_t, std::deque<size_t>>> list_;
   std::unordered_map<frame_id_t, std::pair<decltype(list_)::iterator, bool>> locator_;
 };

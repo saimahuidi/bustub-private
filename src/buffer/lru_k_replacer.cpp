@@ -12,11 +12,12 @@
 
 #include "buffer/lru_k_replacer.h"
 #include <algorithm>
-#include <chrono> // NOLINT
+#include <chrono>  // NOLINT
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <mutex>  // NOLINT
+#include <shared_mutex>
 #include <utility>
 
 namespace bustub {
@@ -26,7 +27,7 @@ LRUKReplacer::LRUKReplacer(size_t num_frames, size_t k) : replacer_size_(num_fra
 }
 
 auto LRUKReplacer::Evict(frame_id_t *frame_id) -> bool {
-  std::scoped_lock<std::mutex> lock(latch_);
+  std::unique_lock<std::shared_mutex> lock(rwlatch_);
   if (curr_size_ <= 0) {
     return false;
   }
@@ -45,7 +46,7 @@ auto LRUKReplacer::Evict(frame_id_t *frame_id) -> bool {
 }
 
 void LRUKReplacer::RecordAccess(frame_id_t frame_id) {
-  std::scoped_lock<std::mutex> lock(latch_);
+  std::unique_lock<std::shared_mutex> lock(rwlatch_);
   GetTime();
   std::pair<frame_id_t, std::deque<size_t>> new_record{frame_id, 0};
   bool evictable = false;
@@ -83,7 +84,7 @@ void LRUKReplacer::RecordAccess(frame_id_t frame_id) {
 }
 
 void LRUKReplacer::SetEvictable(frame_id_t frame_id, bool set_evictable) {
-  std::scoped_lock<std::mutex> lock(latch_);
+  std::unique_lock<std::shared_mutex> lock(rwlatch_);
   if (locator_.count(frame_id) != 0U) {
     if (!locator_[frame_id].second && set_evictable) {
       curr_size_++;
@@ -97,7 +98,7 @@ void LRUKReplacer::SetEvictable(frame_id_t frame_id, bool set_evictable) {
 }
 
 void LRUKReplacer::Remove(frame_id_t frame_id) {
-  std::scoped_lock<std::mutex> lock(latch_);
+  std::unique_lock<std::shared_mutex> lock(rwlatch_);
   // not exist the specific frame_id
   if (locator_.count(frame_id) == 0) {
     return;
@@ -113,7 +114,7 @@ void LRUKReplacer::Remove(frame_id_t frame_id) {
 }
 
 auto LRUKReplacer::Size() -> size_t {
-  std::scoped_lock<std::mutex> lock(latch_);
+  std::shared_lock<std::shared_mutex> lock(rwlatch_);
   return curr_size_;
 }
 
