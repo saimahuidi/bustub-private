@@ -10,6 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <unistd.h>
 #include <algorithm>
 #include <cassert>
 #include <clocale>
@@ -21,6 +22,7 @@
 #include <shared_mutex>
 #include <utility>
 
+#include "common/logger.h"
 #include "container/hash/extendible_hash_table.h"
 #include "storage/page/page.h"
 
@@ -76,6 +78,7 @@ auto ExtendibleHashTable<K, V>::Find(const K &key, V &value) -> bool {
   std::shared_lock<std::shared_mutex> lock(rwlatch_);
   auto index = IndexOf(key);
   bool ret = dir_[index]->Find(key, value);
+  LOG_TRACE("PID=%d Hashtable find index=%ld ret=%d", getpid(), index, ret);
   return ret;
 }
 
@@ -84,6 +87,7 @@ auto ExtendibleHashTable<K, V>::Remove(const K &key) -> bool {
   std::unique_lock<std::shared_mutex> lock(rwlatch_);
   auto index = IndexOf(key);
   bool ret = dir_[index]->Remove(key);
+  LOG_TRACE("PID=%d Hashtable remove index=%ld ret=%d", getpid(), index, ret);
   return ret;
 }
 
@@ -124,6 +128,7 @@ void ExtendibleHashTable<K, V>::Insert(const K &key, const V &value) {
     }
     index = IndexOf(key);
   }
+  LOG_TRACE("PID=%d Hashtable insert index=%ld", getpid(), index);
 }
 
 //===--------------------------------------------------------------------===//

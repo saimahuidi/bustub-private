@@ -100,6 +100,7 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
   } else {
     abort();
   }
+  size_++;
   return result;
 }
 
@@ -142,6 +143,7 @@ auto BPLUSTREE_TYPE::InsertWithSplit(const KeyType &key, const ValueType &value,
     for (int i = 0; i < new_tree_page_tmp->GetMaxSize() - new_tree_page_tmp->GetMinSize(); i++) {
       page_id_t child = new_tree_page_tmp->ValueAt(i);
       reinterpret_cast<BPlusTreePage *>(buffer_pool_manager_->FetchPage(child)->GetData())->SetParentPageId(new_page_id_tmp);
+      buffer_pool_manager_->UnpinPage(child, true);
     }
     parent_page->WUnlatch();
     buffer_pool_manager_->UnpinPage(parent_page->GetPageId(), true);

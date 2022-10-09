@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "buffer/lru_k_replacer.h"
+#include <unistd.h>
 #include <algorithm>
 #include <chrono>  // NOLINT
 #include <cstddef>
@@ -19,6 +20,7 @@
 #include <mutex>  // NOLINT
 #include <shared_mutex>
 #include <utility>
+#include "common/logger.h"
 
 namespace bustub {
 
@@ -29,6 +31,7 @@ LRUKReplacer::LRUKReplacer(size_t num_frames, size_t k) : replacer_size_(num_fra
 auto LRUKReplacer::Evict(frame_id_t *frame_id) -> bool {
   std::unique_lock<std::shared_mutex> lock(rwlatch_);
   if (curr_size_ <= 0) {
+    LOG_TRACE("PID=%d Lru-k evict success=%d evict_frame_id=%d", getpid(), false, 0);
     return false;
   }
   auto evict_record = list_.begin();
@@ -42,6 +45,7 @@ auto LRUKReplacer::Evict(frame_id_t *frame_id) -> bool {
   locator_.erase(evict_id);
   curr_size_--;
   *frame_id = evict_id;
+  LOG_TRACE("PID=%d Lru-k evict success=%d evict_frame_id=%d", getpid(), true, *frame_id);
   return true;
 }
 
@@ -81,6 +85,7 @@ void LRUKReplacer::RecordAccess(frame_id_t frame_id) {
   };
   auto new_pos = std::find_if(list_.begin(), list_.end(), find_pos);
   locator_[frame_id] = {list_.insert(new_pos, std::move(new_record)), evictable};
+  LOG_TRACE("PID=%d Lru-k recordAccess record_frame_id=%d", getpid(), frame_id);
 }
 
 void LRUKReplacer::SetEvictable(frame_id_t frame_id, bool set_evictable) {
@@ -95,6 +100,7 @@ void LRUKReplacer::SetEvictable(frame_id_t frame_id, bool set_evictable) {
   } else {
     return;
   }
+  LOG_TRACE("PID=%d Lru-k setEvictable frame_id=%d set_evictable=%d curr_size=%ld", getpid(), frame_id, set_evictable, curr_size_);
 }
 
 void LRUKReplacer::Remove(frame_id_t frame_id) {
@@ -111,6 +117,7 @@ void LRUKReplacer::Remove(frame_id_t frame_id) {
   list_.erase(locator_[frame_id].first);
   locator_.erase(frame_id);
   curr_size_--;
+  LOG_TRACE("PID=%d Lru-k remove remove_frame_id=%d curr_size=%ld", getpid(), frame_id, curr_size_);
 }
 
 auto LRUKReplacer::Size() -> size_t {

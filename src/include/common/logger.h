@@ -65,6 +65,7 @@ static constexpr int LOG_LEVEL_ALL = 0;
 #define LOG_LOG_TIME_FORMAT "%Y-%m-%d %H:%M:%S"
 #define LOG_OUTPUT_STREAM stdout
 
+#define LOG_LEVEL 0
 // Compile Option
 #ifndef LOG_LEVEL
 // TODO(TAs) : any way to use pragma message in GCC?
@@ -163,6 +164,7 @@ void OutputLogHeader(const char *file, int line, const char *func, int level);
   ::fprintf(LOG_OUTPUT_STREAM, __VA_ARGS__);                                \
   fprintf(LOG_OUTPUT_STREAM, "\n");                                         \
   ::fflush(stdout)
+  
 #else
 #define LOG_TRACE(...) ((void)0)
 #endif
