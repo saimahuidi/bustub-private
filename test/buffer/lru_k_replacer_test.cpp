@@ -21,6 +21,7 @@ TEST(LRUKReplacerTest, SampleTest) {
 
   // Scenario: add six elements to the replacer. We have [1,2,3,4,5]. Frame 6 is non-evictable.
   lru_replacer.RecordAccess(1);
+  lru_replacer.RecordAccess(1);
   lru_replacer.RecordAccess(2);
   lru_replacer.RecordAccess(3);
   lru_replacer.RecordAccess(4);

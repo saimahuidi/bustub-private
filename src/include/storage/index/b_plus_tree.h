@@ -10,7 +10,8 @@
 //===----------------------------------------------------------------------===//
 #pragma once
 
-#include <mutex>
+#include <deque>
+#include <mutex>  // NOLINT
 #include <queue>
 #include <shared_mutex>
 #include <string>
@@ -40,19 +41,13 @@ namespace bustub {
  * (4) Implement index iterator for range scan
  */
 
-enum class RWLOCK {
-  readLock = 0,
-  writeLock = 1
-};
+enum class RWLOCK { readLock = 0, writeLock = 1 };
 INDEX_TEMPLATE_ARGUMENTS
 class BPlusTree {
   using InternalPage = BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator>;
   using LeafPage = BPlusTreeLeafPage<KeyType, ValueType, KeyComparator>;
 
-
  public:
-
-
   explicit BPlusTree(std::string name, BufferPoolManager *buffer_pool_manager, const KeyComparator &comparator,
                      int leaf_max_size = LEAF_PAGE_SIZE, int internal_max_size = INTERNAL_PAGE_SIZE);
 
@@ -64,7 +59,7 @@ class BPlusTree {
 
   // Remove a key and its value from this B+ tree.
   void Remove(const KeyType &key, Transaction *transaction = nullptr);
-  
+
   // return the value associated with a given key
   auto GetValue(const KeyType &key, std::vector<ValueType> *result, Transaction *transaction = nullptr) -> bool;
 
@@ -88,7 +83,7 @@ class BPlusTree {
   // read data from file and remove one by one
   void RemoveFromFile(const std::string &file_name, Transaction *transaction = nullptr);
 
-//  private:
+  // private:
   void UpdateRootPageId(int insert_record = 0);
 
   /* Debug Routines for FREE!! */
@@ -96,20 +91,26 @@ class BPlusTree {
 
   void ToString(BPlusTreePage *page, BufferPoolManager *bpm) const;
 
-private:
+ private:
   // search for the leaf
-  auto FindLeaf(Page *current_page, const KeyType &key, RWLOCK locktype, Transaction *, std::deque<Page *> &pages_need_lock) -> Page *;
+  auto FindLeaf(Page *current_page, const KeyType &key, RWLOCK locktype, Transaction *,
+                std::deque<Page *> &pages_need_lock) -> Page *;
   // search for the leaf with split
-  auto FindLeafForInsert(Page *current_page, const KeyType &key, Transaction *, std::deque<Page *> &pages_need_lock) -> Page *;
+  auto FindLeafForInsert(Page *current_page, const KeyType &key, Transaction *, std::deque<Page *> &pages_need_lock)
+      -> Page *;
   // Remove with operation
-  auto FindLeafForRemove(Page *current_page, const KeyType &key, Transaction *, std::deque<Page *> &pages_need_lock) -> Page *;
+  auto FindLeafForRemove(Page *current_page, const KeyType &key, Transaction *, std::deque<Page *> &pages_need_lock)
+      -> Page *;
 
   // insert with split
-  auto InsertWithSplit(const KeyType &key, const ValueType &value, Transaction *transaction, std::deque<Page *> &pages_need_lock) -> bool;
+  auto InsertWithSplit(const KeyType &key, const ValueType &value, Transaction *transaction,
+                       std::deque<Page *> &pages_need_lock) -> bool;
 
-  void InsertEntry(Page *current, const KeyType &key, const ValueType &value, Transaction *transaction, std::deque<Page *> &pages_need_lock);
+  void InsertEntry(Page *current, const KeyType &key, const ValueType &value, Transaction *transaction,
+                   std::deque<Page *> &pages_need_lock);
 
-  void InsertEntryParent(Page *Internal_page, const KeyType &key, const page_id_t &value, Transaction *transaction, std::deque<Page *> &pages_need_lock);
+  void InsertEntryParent(Page *Internal_page, const KeyType &key, const page_id_t &value, Transaction *transaction,
+                         std::deque<Page *> &pages_need_lock);
 
   void RemoveWithOperation(const KeyType &key, Transaction *transaction, std::deque<Page *> &pages_need_lock);
 
@@ -125,8 +126,6 @@ private:
   // clear the transection
   void ClearLockSet(std::deque<Page *> &pages_need_lock, RWLOCK locktype, bool is_dirty);
 
-
-
   // member variable
   std::string index_name_;
   page_id_t root_page_id_;
@@ -134,7 +133,7 @@ private:
   KeyComparator comparator_;
   int leaf_max_size_;
   int internal_max_size_;
-  mutable Page sentinel_page_; 
+  mutable Page sentinel_page_;
 };
 
 void AddIntoPageSetHelper(Transaction *transaction, Page *page);

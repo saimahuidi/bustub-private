@@ -64,11 +64,10 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::KeyAt(int index) const -> KeyType {
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::GetValue(const KeyType &key, const KeyComparator &comparator, std::vector<ValueType> *result) -> bool {
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::GetValue(const KeyType &key, const KeyComparator &comparator,
+                                          std::vector<ValueType> *result) -> bool {
   // find the entry
-  auto cmp = [&key, &comparator](MappingType &elem) {
-    return comparator(key, elem.first) == 0;
-  };
+  auto cmp = [&key, &comparator](MappingType &elem) { return comparator(key, elem.first) == 0; };
   // find the iterator
   MappingType *find_result = std::find_if(array_, array_ + GetSize(), cmp);
   // fail to find
@@ -84,18 +83,15 @@ INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::KeyExist(const KeyType &key, const KeyComparator &comparator) -> bool {
   const MappingType target{key, ValueType()};
   // find the entry
-  auto cmp = [&comparator](const MappingType &a, const MappingType &b) {
-    return comparator(a.first, b.first) == -1;
-  };
+  auto cmp = [&comparator](const MappingType &a, const MappingType &b) { return comparator(a.first, b.first) == -1; };
   return std::binary_search(array_, array_ + GetSize(), target, cmp);
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::InsertEntry(const KeyType &key, const ValueType &value, const KeyComparator &comparator) -> bool {
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::InsertEntry(const KeyType &key, const ValueType &value,
+                                             const KeyComparator &comparator) -> bool {
   // define the cmp
-  auto comp = [&comparator, &key](MappingType &elem) -> int{
-    return comparator(key, elem.first) == -1;
-  };
+  auto comp = [&comparator, &key](MappingType &elem) -> int { return comparator(key, elem.first) == -1; };
   // find the position
   MappingType *find_result = std::find_if(array_, array_ + GetSize(), comp);
   // if the result == key
@@ -104,7 +100,8 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::InsertEntry(const KeyType &key, const ValueType
   }
   // transfer the data
   if (find_result != array_ + GetSize()) {
-    memmove(static_cast<void *>(find_result + 1), static_cast<void *>(find_result), (array_ + GetSize() - find_result) * sizeof(MappingType));
+    memmove(static_cast<void *>(find_result + 1), static_cast<void *>(find_result),
+            (array_ + GetSize() - find_result) * sizeof(MappingType));
   }
   *find_result = {key, value};
   IncreaseSize(1);
@@ -112,18 +109,22 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::InsertEntry(const KeyType &key, const ValueType
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::InsertEntryWithSplit(const KeyType &key, const ValueType &value, const KeyComparator &comparator, KeyType *new_key, LeafPage *new_page_btree) -> bool {
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::InsertEntryWithSplit(const KeyType &key, const ValueType &value,
+                                                      const KeyComparator &comparator, KeyType *new_key,
+                                                      LeafPage *new_page_btree) -> bool {
   assert(GetSize() == GetMaxSize());
   // copy another part to the new node
   // insert the new key/value to the suitable page
   bool result;
   if (comparator(key, KeyAt(GetMinSize() - 1)) == -1) {
-    memmove(static_cast<void *>(new_page_btree->array_), static_cast<void *>(array_ + GetMinSize() - 1), (GetMaxSize() - GetMinSize() + 1) * sizeof(MappingType)); 
+    memmove(static_cast<void *>(new_page_btree->array_), static_cast<void *>(array_ + GetMinSize() - 1),
+            (GetMaxSize() - GetMinSize() + 1) * sizeof(MappingType));
     new_page_btree->SetSize(GetMaxSize() - GetMinSize() + 1);
     SetSize(GetMinSize() - 1);
     result = InsertEntry(key, value, comparator);
   } else {
-    memmove(static_cast<void *>(new_page_btree->array_), static_cast<void *>(array_ + GetMinSize()), (GetMaxSize() - GetMinSize()) * sizeof(MappingType)); 
+    memmove(static_cast<void *>(new_page_btree->array_), static_cast<void *>(array_ + GetMinSize()),
+            (GetMaxSize() - GetMinSize()) * sizeof(MappingType));
     new_page_btree->SetSize(GetMaxSize() - GetMinSize());
     SetSize(GetMinSize());
     result = new_page_btree->InsertEntry(key, value, comparator);
@@ -140,9 +141,7 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::InsertEntryWithSplit(const KeyType &key, const 
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::RemoveEntry(const KeyType &key, const KeyComparator &comparator) -> bool {
   // define the cmp
-  auto comp = [&comparator, &key](MappingType &elem) -> int{
-    return comparator(key, elem.first) == 0;
-  };
+  auto comp = [&comparator, &key](MappingType &elem) -> int { return comparator(key, elem.first) == 0; };
   // find the position
   MappingType *find_result = std::find_if(array_, array_ + GetSize(), comp);
   // if don't find the result
@@ -150,7 +149,8 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::RemoveEntry(const KeyType &key, const KeyCompar
     return false;
   }
   if (find_result != array_ + GetSize() - 1) {
-    memmove(static_cast<void *>(find_result), static_cast<void *>(find_result + 1), (array_ + GetSize() - find_result - 1) * sizeof(MappingType));
+    memmove(static_cast<void *>(find_result), static_cast<void *>(find_result + 1),
+            (array_ + GetSize() - find_result - 1) * sizeof(MappingType));
   }
   IncreaseSize(-1);
   return true;
@@ -158,14 +158,16 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::RemoveEntry(const KeyType &key, const KeyCompar
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::Coalesce(LeafPage *brother_page_btree) -> bool {
   assert(GetNextPageId() == brother_page_btree->GetPageId());
-  memmove(static_cast<void *>(array_ + GetSize()), static_cast<void *>(brother_page_btree->array_), (brother_page_btree->GetSize()) * sizeof(MappingType));
+  memmove(static_cast<void *>(array_ + GetSize()), static_cast<void *>(brother_page_btree->array_),
+          (brother_page_btree->GetSize()) * sizeof(MappingType));
   SetNextPageId(brother_page_btree->next_page_id_);
   IncreaseSize(brother_page_btree->GetSize());
   return true;
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::StealEntry(LeafPage *brother_page_btree, KeyType &key_between, bool left_or_right) -> bool{
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::StealEntry(LeafPage *brother_page_btree, KeyType &key_between, bool left_or_right)
+    -> bool {
   auto brother_array = brother_page_btree->array_;
   if (left_or_right) {
     memmove(static_cast<void *>(array_ + 1), static_cast<void *>(array_), (GetSize()) * sizeof(MappingType));
@@ -176,7 +178,8 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::StealEntry(LeafPage *brother_page_btree, KeyTyp
   } else {
     array_[GetSize()] = brother_array[0];
     brother_page_btree->IncreaseSize(-1);
-    memmove(static_cast<void *>(brother_array), static_cast<void *>(brother_array + 1), (brother_page_btree->GetSize()) * sizeof(MappingType));
+    memmove(static_cast<void *>(brother_array), static_cast<void *>(brother_array + 1),
+            (brother_page_btree->GetSize()) * sizeof(MappingType));
     IncreaseSize(1);
     key_between = brother_array[0].first;
   }

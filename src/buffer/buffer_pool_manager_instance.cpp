@@ -156,7 +156,6 @@ auto BufferPoolManagerInstance::DeletePgImp(page_id_t page_id) -> bool {
   old_page.page_id_ = INVALID_PAGE_ID;
   old_page.is_dirty_ = false;
   old_page.pin_count_ = 0;
-  old_page.ResetMemory();
   DeallocatePage(page_id);
   return true;
 }

@@ -1,7 +1,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdlib>
-#include <mutex>
+#include <mutex>  //NOLINT
 #include <ostream>
 #include <shared_mutex>
 #include <string>
@@ -23,7 +23,6 @@
 #include "type/type.h"
 
 namespace bustub {
-
 
 INDEX_TEMPLATE_ARGUMENTS
 BPLUSTREE_TYPE::BPlusTree(std::string name, BufferPoolManager *buffer_pool_manager, const KeyComparator &comparator,
@@ -98,7 +97,7 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
   // record the locks
   std::deque<Page *> pages_need_lock;
   pages_need_lock.push_back(&sentinel_page_);
-  // get the leaf_page with the lock 
+  // get the leaf_page with the lock
   Page *root_page = buffer_pool_manager_->FetchPage(root_page_id_);
   Page *leaf_page = FindLeaf(root_page, key, RWLOCK::writeLock, transaction, pages_need_lock);
   // Insert the entry to the page
@@ -151,12 +150,12 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *transaction) {
   // record the locks
   std::deque<Page *> pages_need_lock;
   pages_need_lock.push_back(&sentinel_page_);
-  // get the leaf_page with the lock 
+  // get the leaf_page with the lock
   Page *root_page = buffer_pool_manager_->FetchPage(root_page_id_);
   Page *leaf_page = FindLeaf(root_page, key, RWLOCK::writeLock, transaction, pages_need_lock);
   // remove the entry from the page
   auto leaf_page_btree = reinterpret_cast<LeafPage *>(leaf_page->GetData());
-  if (leaf_page_btree->GetSize() > leaf_page_btree->GetMinSize() || 
+  if (leaf_page_btree->GetSize() > leaf_page_btree->GetMinSize() ||
       (leaf_page_btree->IsRootPage() && leaf_page_btree->GetSize() > 1)) {
     // remove the entry without extra operation
     auto result = leaf_page_btree->RemoveEntry(key, comparator_);
@@ -165,7 +164,7 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *transaction) {
     buffer_pool_manager_->UnpinPage(leaf_page->GetPageId(), result);
   } else {
     if (!leaf_page_btree->KeyExist(key, comparator_)) {
-    // restore the page
+      // restore the page
       leaf_page->WUnlatch();
       buffer_pool_manager_->UnpinPage(leaf_page->GetPageId(), true);
       return;
@@ -179,11 +178,10 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *transaction) {
   }
 }
 
-
-
 // get the leafnode without lock its parent
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::FindLeaf(Page* current_page, const KeyType &key, RWLOCK locktype, Transaction *transaction, std::deque<Page *> &pages_need_lock) -> Page * {
+auto BPLUSTREE_TYPE::FindLeaf(Page *current_page, const KeyType &key, RWLOCK locktype, Transaction *transaction,
+                              std::deque<Page *> &pages_need_lock) -> Page * {
   // get the page
   auto current_page_tree = reinterpret_cast<BPlusTreePage *>(current_page->GetData());
   if (!current_page_tree->IsLeafPage()) {
@@ -216,9 +214,9 @@ void BPLUSTREE_TYPE::ClearLockSet(std::deque<Page *> &pages_need_lock, RWLOCK lo
   }
 }
 
-
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::FindLeafForInsert(Page *current_page, const KeyType &key, Transaction *transaction, std::deque<Page *> &pages_need_lock) -> Page * {
+auto BPLUSTREE_TYPE::FindLeafForInsert(Page *current_page, const KeyType &key, Transaction *transaction,
+                                       std::deque<Page *> &pages_need_lock) -> Page * {
   // needed pages are locked and put in the page set
   current_page->WLatch();
   auto current_page_btree = reinterpret_cast<BPlusTreePage *>(current_page->GetData());
@@ -226,13 +224,13 @@ auto BPLUSTREE_TYPE::FindLeafForInsert(Page *current_page, const KeyType &key, T
     auto current_tree_page_inter = static_cast<InternalPage *>(current_page_btree);
     // get child page
     auto children_page_id = current_tree_page_inter->GetChildPageId(key, comparator_);
-    Page * child_page = buffer_pool_manager_->FetchPage(children_page_id);  
+    Page *child_page = buffer_pool_manager_->FetchPage(children_page_id);
     auto child_page_btree = reinterpret_cast<BPlusTreePage *>(child_page->GetData());
-    if (child_page_btree->GetSize() == internal_max_size_){
+    if (child_page_btree->GetSize() == internal_max_size_) {
       // put in the parent's page's lock
       pages_need_lock.push_back(current_page);
       return FindLeafForInsert(child_page, key, transaction, pages_need_lock);
-    } 
+    }
     // if the child page will not generate operation
     // clear and unlock all the lock above
     ClearLockSet(pages_need_lock, RWLOCK::writeLock, false);
@@ -245,7 +243,8 @@ auto BPLUSTREE_TYPE::FindLeafForInsert(Page *current_page, const KeyType &key, T
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::FindLeafForRemove(Page *current_page, const KeyType &key, Transaction *transaction, std::deque<Page *> &pages_need_lock) -> Page *{
+auto BPLUSTREE_TYPE::FindLeafForRemove(Page *current_page, const KeyType &key, Transaction *transaction,
+                                       std::deque<Page *> &pages_need_lock) -> Page * {
   // needed pages are locked and put in the page set
   current_page->WLatch();
   auto current_page_btree = reinterpret_cast<BPlusTreePage *>(current_page->GetData());
@@ -253,14 +252,14 @@ auto BPLUSTREE_TYPE::FindLeafForRemove(Page *current_page, const KeyType &key, T
     auto current_tree_page_inter = static_cast<InternalPage *>(current_page_btree);
     // get child page
     auto children_page_id = current_tree_page_inter->GetChildPageId(key, comparator_);
-    Page * child_page = buffer_pool_manager_->FetchPage(children_page_id);  
+    Page *child_page = buffer_pool_manager_->FetchPage(children_page_id);
     auto child_page_btree = reinterpret_cast<BPlusTreePage *>(child_page->GetData());
     if (child_page_btree->GetSize() <= child_page_btree->GetMinSize()) {
       assert(child_page_btree->GetSize() == child_page_btree->GetMinSize());
       // put in the parent's page's lock
       pages_need_lock.push_back(current_page);
       return FindLeafForRemove(child_page, key, transaction, pages_need_lock);
-    } 
+    }
     // if the child page will not generate operation
     // clear and unlock all the lock above
     ClearLockSet(pages_need_lock, RWLOCK::writeLock, false);
@@ -281,7 +280,8 @@ void BPLUSTREE_TYPE::CreateRootPage() {
   }
   Page *root = buffer_pool_manager_->NewPage(&root_page_id_);
   // init the root page
-  reinterpret_cast<BPlusTreeLeafPage<KeyType, ValueType, KeyComparator> *>(root->GetData())->Init(root_page_id_, INVALID_PAGE_ID, leaf_max_size_);
+  reinterpret_cast<BPlusTreeLeafPage<KeyType, ValueType, KeyComparator> *>(root->GetData())
+      ->Init(root_page_id_, INVALID_PAGE_ID, leaf_max_size_);
   UpdateRootPageId(true);
   buffer_pool_manager_->UnpinPage(root_page_id_, true);
   sentinel_page_.WUnlatch();
@@ -301,7 +301,8 @@ void BPLUSTREE_TYPE::ChangeRootPage(page_id_t new_root_id, page_id_t delete_page
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::InsertWithSplit(const KeyType &key, const ValueType &value, Transaction *transaction, std::deque<Page *> &pages_need_lock) -> bool {
+auto BPLUSTREE_TYPE::InsertWithSplit(const KeyType &key, const ValueType &value, Transaction *transaction,
+                                     std::deque<Page *> &pages_need_lock) -> bool {
   // lock the Sentinel page
   sentinel_page_.WLatch();
   AddIntoPageSetHelper(transaction, &sentinel_page_);
@@ -315,7 +316,8 @@ auto BPLUSTREE_TYPE::InsertWithSplit(const KeyType &key, const ValueType &value,
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-void BPLUSTREE_TYPE::InsertEntry(Page *leaf_page, const KeyType &key,const ValueType &value, Transaction *transaction, std::deque<Page *> &pages_need_lock) {
+void BPLUSTREE_TYPE::InsertEntry(Page *leaf_page, const KeyType &key, const ValueType &value, Transaction *transaction,
+                                 std::deque<Page *> &pages_need_lock) {
   auto *leaf_page_btree = reinterpret_cast<LeafPage *>(leaf_page->GetData());
   // update the root page
   InsertUpdateRoot(leaf_page);
@@ -338,7 +340,8 @@ void BPLUSTREE_TYPE::InsertEntry(Page *leaf_page, const KeyType &key,const Value
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-void BPLUSTREE_TYPE::InsertEntryParent(Page *Internal_page, const KeyType &key, const page_id_t &value, Transaction *transaction, std::deque<Page *> &pages_need_lock) {
+void BPLUSTREE_TYPE::InsertEntryParent(Page *Internal_page, const KeyType &key, const page_id_t &value,
+                                       Transaction *transaction, std::deque<Page *> &pages_need_lock) {
   auto internal_page_btree = reinterpret_cast<InternalPage *>(Internal_page->GetData());
   if (internal_page_btree->GetSize() < internal_max_size_) {
     auto result = internal_page_btree->InsertEntry(key, value, comparator_);
@@ -388,7 +391,8 @@ void BPLUSTREE_TYPE::InsertUpdateRoot(Page *page) {
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-void BPLUSTREE_TYPE::RemoveWithOperation(const KeyType &key, Transaction *transaction, std::deque<Page *> &pages_need_lock) {
+void BPLUSTREE_TYPE::RemoveWithOperation(const KeyType &key, Transaction *transaction,
+                                         std::deque<Page *> &pages_need_lock) {
   // lock the Sentinel page
   sentinel_page_.WLatch();
   AddIntoPageSetHelper(transaction, &sentinel_page_);
@@ -401,11 +405,12 @@ void BPLUSTREE_TYPE::RemoveWithOperation(const KeyType &key, Transaction *transa
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-void BPLUSTREE_TYPE::RemoveEntry(Page *current, const KeyType &key, Transaction *transaction, std::deque<Page *> &pages_need_lock) {
+void BPLUSTREE_TYPE::RemoveEntry(Page *current, const KeyType &key, Transaction *transaction,
+                                 std::deque<Page *> &pages_need_lock) {
   auto current_tree_page = reinterpret_cast<BPlusTreePage *>(current->GetData());
   // remove the key/value
-  auto current_tree_page_inter = reinterpret_cast<InternalPage *>(current_tree_page); 
-  auto current_tree_page_leaf = reinterpret_cast<LeafPage *>(current_tree_page); 
+  auto current_tree_page_inter = reinterpret_cast<InternalPage *>(current_tree_page);
+  auto current_tree_page_leaf = reinterpret_cast<LeafPage *>(current_tree_page);
   if (current_tree_page->IsLeafPage()) {
     current_tree_page_leaf->RemoveEntry(key, comparator_);
   } else {
@@ -422,16 +427,16 @@ void BPLUSTREE_TYPE::RemoveEntry(Page *current, const KeyType &key, Transaction 
       page_id_t delete_page_id = current_tree_page->GetPageId();
       ChangeRootPage(INVALID_PAGE_ID, delete_page_id, transaction);
     }
-  } else if (current_tree_page->GetSize() < current_tree_page->GetMinSize())  {
+  } else if (current_tree_page->GetSize() < current_tree_page->GetMinSize()) {
     // do operation
-    Page *parent_page = buffer_pool_manager_->FetchPage(current_tree_page->GetParentPageId()); 
+    Page *parent_page = buffer_pool_manager_->FetchPage(current_tree_page->GetParentPageId());
     buffer_pool_manager_->UnpinPage(parent_page->GetPageId(), true);
     auto parent_tree_page = reinterpret_cast<InternalPage *>(parent_page->GetData());
     BPlusTreePage *brother_tree_page;
     KeyType *key_between;
     bool left_or_not;
-    bool coalesce_or_not = parent_tree_page->GetSuitablePage(current_tree_page->GetPageId(), brother_tree_page, key_between, left_or_not, buffer_pool_manager_);
-    
+    bool coalesce_or_not = parent_tree_page->GetSuitablePage(current_tree_page->GetPageId(), brother_tree_page,
+                                                             key_between, left_or_not, buffer_pool_manager_);
     if (coalesce_or_not) {
       // swap the pages if current page at right
       if (left_or_not) {
@@ -463,7 +468,7 @@ void BPLUSTREE_TYPE::RemoveEntry(Page *current, const KeyType &key, Transaction 
     } else {
       // redistribution
       if (!current_tree_page->IsLeafPage()) {
-        current_tree_page_inter->StealEntry(static_cast<InternalPage *>(brother_tree_page), *key_between, left_or_not);        
+        current_tree_page_inter->StealEntry(static_cast<InternalPage *>(brother_tree_page), *key_between, left_or_not);
       } else {
         current_tree_page_leaf->StealEntry(static_cast<LeafPage *>(brother_tree_page), *key_between, left_or_not);
       }
@@ -503,11 +508,11 @@ auto BPLUSTREE_TYPE::End() -> INDEXITERATOR_TYPE { return INDEXITERATOR_TYPE(); 
  * @return Page id of the root of this tree
  */
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::GetRootPageId() -> page_id_t { 
+auto BPLUSTREE_TYPE::GetRootPageId() -> page_id_t {
   sentinel_page_.RLatch();
   auto ret = root_page_id_;
   sentinel_page_.RUnlatch();
-  return ret; 
+  return ret;
 }
 
 void AddIntoPageSetHelper(Transaction *transaction, Page *page) {

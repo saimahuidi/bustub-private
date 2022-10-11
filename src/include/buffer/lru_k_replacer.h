@@ -17,6 +17,7 @@
 #include <deque>
 #include <limits>
 #include <list>
+#include <memory>
 #include <mutex>  // NOLINT
 #include <shared_mutex>
 #include <unordered_map>
@@ -152,7 +153,9 @@ class LRUKReplacer {
   size_t k_;
   std::shared_mutex rwlatch_;
   std::list<std::pair<frame_id_t, std::deque<size_t>>> list_;
-  std::unordered_map<frame_id_t, std::pair<decltype(list_)::iterator, bool>> locator_;
+  // std::unordered_map<frame_id_t, std::pair<decltype(list_)::iterator, bool>> locator_;
+  std::vector<std::pair<decltype(list_)::iterator, bool>> locator_;
+  std::vector<bool> vaild_;
 };
 
 }  // namespace bustub

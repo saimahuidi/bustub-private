@@ -45,7 +45,8 @@ namespace bustub {
  */
 INDEX_TEMPLATE_ARGUMENTS
 class BPlusTreeLeafPage : public BPlusTreePage {
- using LeafPage = BPlusTreeLeafPage<KeyType, ValueType, KeyComparator>;
+  using LeafPage = BPlusTreeLeafPage<KeyType, ValueType, KeyComparator>;
+
  public:
   // After creating a new leaf page from buffer pool, must call initialize
   // method to set default values
@@ -57,10 +58,12 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   auto GetValue(const KeyType &key, const KeyComparator &comparator, std::vector<ValueType> *result = nullptr) -> bool;
   auto KeyExist(const KeyType &key, const KeyComparator &comparator) -> bool;
   auto InsertEntry(const KeyType &key, const ValueType &value, const KeyComparator &comparator) -> bool;
-  auto InsertEntryWithSplit(const KeyType &key, const ValueType &value, const KeyComparator &comparator, KeyType *, LeafPage *) -> bool;
+  auto InsertEntryWithSplit(const KeyType &key, const ValueType &value, const KeyComparator &comparator, KeyType *,
+                            LeafPage *) -> bool;
   auto RemoveEntry(const KeyType &keye, const KeyComparator &comparator) -> bool;
   auto Coalesce(LeafPage *) -> bool;
   auto StealEntry(LeafPage *, KeyType &key_between, bool left_or_not) -> bool;
+
  private:
   page_id_t next_page_id_;
   // Flexible array member for page data.
