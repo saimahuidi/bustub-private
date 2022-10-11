@@ -16,10 +16,13 @@
 #include <string>
 #include <vector>
 
+#include "common/config.h"
+#include "common/rwlatch.h"
 #include "concurrency/transaction.h"
 #include "storage/index/index_iterator.h"
 #include "storage/page/b_plus_tree_internal_page.h"
 #include "storage/page/b_plus_tree_leaf_page.h"
+#include "storage/page/b_plus_tree_page.h"
 #include "storage/page/page.h"
 
 namespace bustub {
@@ -58,12 +61,10 @@ class BPlusTree {
 
   // Insert a key-value pair into this B+ tree.
   auto Insert(const KeyType &key, const ValueType &value, Transaction *transaction = nullptr) -> bool;
-  // insert with split
-  auto InsertWithSplit(const KeyType &key, const ValueType &value, Transaction *transaction = nullptr) -> bool;
 
   // Remove a key and its value from this B+ tree.
   void Remove(const KeyType &key, Transaction *transaction = nullptr);
-
+  
   // return the value associated with a given key
   auto GetValue(const KeyType &key, std::vector<ValueType> *result, Transaction *transaction = nullptr) -> bool;
 
@@ -95,9 +96,36 @@ class BPlusTree {
 
   void ToString(BPlusTreePage *page, BufferPoolManager *bpm) const;
 
-  auto FindLeaf(const KeyType &key, RWLOCK locktype) -> Page *;
+private:
+  // search for the leaf
+  auto FindLeaf(Page *current_page, const KeyType &key, RWLOCK locktype, Transaction *, std::deque<Page *> &pages_need_lock) -> Page *;
+  // search for the leaf with split
+  auto FindLeafForInsert(Page *current_page, const KeyType &key, Transaction *, std::deque<Page *> &pages_need_lock) -> Page *;
+  // Remove with operation
+  auto FindLeafForRemove(Page *current_page, const KeyType &key, Transaction *, std::deque<Page *> &pages_need_lock) -> Page *;
 
-  auto FindLeafWithSplit(const KeyType &key, std::deque<Page *> &pages_need_lock) -> Page *;
+  // insert with split
+  auto InsertWithSplit(const KeyType &key, const ValueType &value, Transaction *transaction, std::deque<Page *> &pages_need_lock) -> bool;
+
+  void InsertEntry(Page *current, const KeyType &key, const ValueType &value, Transaction *transaction, std::deque<Page *> &pages_need_lock);
+
+  void InsertEntryParent(Page *Internal_page, const KeyType &key, const page_id_t &value, Transaction *transaction, std::deque<Page *> &pages_need_lock);
+
+  void RemoveWithOperation(const KeyType &key, Transaction *transaction, std::deque<Page *> &pages_need_lock);
+
+  void RemoveEntry(Page *current, const KeyType &key, Transaction *transaction, std::deque<Page *> &pages_need_lock);
+
+  void InsertUpdateRoot(Page *);
+  // create the new root page
+  void CreateRootPage();
+  // delete the new root page
+  void DeleteRootPage();
+  // change to the new root page
+  void ChangeRootPage(page_id_t, page_id_t, Transaction *);
+  // clear the transection
+  void ClearLockSet(std::deque<Page *> &pages_need_lock, RWLOCK locktype, bool is_dirty);
+
+
 
   // member variable
   std::string index_name_;
@@ -106,8 +134,9 @@ class BPlusTree {
   KeyComparator comparator_;
   int leaf_max_size_;
   int internal_max_size_;
-  int size_;
-  mutable std::mutex latch_;
+  mutable Page sentinel_page_; 
 };
+
+void AddIntoPageSetHelper(Transaction *transaction, Page *page);
 
 }  // namespace bustub

@@ -74,7 +74,7 @@ void HashTableDirectoryPage::VerifyIntegrity() {
     ++page_id_to_count[curr_page_id];
 
     if (page_id_to_ld.count(curr_page_id) > 0 && curr_ld != page_id_to_ld[curr_page_id]) {
-      uint32_t old_ld = page_id_to_ld[curr_page_id];
+      // uint32_t old_ld = page_id_to_ld[curr_page_id];
       LOG_WARN("Verify Integrity: curr_local_depth: %u, old_local_depth %u, for page_id: %u", curr_ld, old_ld,
                curr_page_id);
       PrintDirectory();

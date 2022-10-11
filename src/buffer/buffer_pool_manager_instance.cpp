@@ -91,7 +91,7 @@ auto BufferPoolManagerInstance::NewPgImp(page_id_t *page_id) -> Page * {
 
 auto BufferPoolManagerInstance::FetchPgImp(page_id_t page_id) -> Page * {
   std::unique_lock<std::shared_mutex> buffer_lock(rwlatch_);
-  if (page_id >= next_page_id_) {
+  if (page_id >= next_page_id_ && page_id < 0) {
     return nullptr;
   }
   frame_id_t frame_id;
