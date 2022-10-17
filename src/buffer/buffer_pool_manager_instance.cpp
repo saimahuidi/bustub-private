@@ -153,6 +153,7 @@ auto BufferPoolManagerInstance::DeletePgImp(page_id_t page_id) -> bool {
     disk_manager_->WritePage(page_id, pages_[frame_id].GetData());
     pages_[frame_id].is_dirty_ = false;
   }
+  old_page.ResetMemory();
   old_page.page_id_ = INVALID_PAGE_ID;
   old_page.is_dirty_ = false;
   old_page.pin_count_ = 0;

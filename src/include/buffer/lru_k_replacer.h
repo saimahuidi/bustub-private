@@ -139,7 +139,7 @@ class LRUKReplacer {
   auto Size() -> size_t;
 
  private:
-  auto IsFull() -> bool { return list_.size() >= replacer_size_; }
+  auto IsFull() -> bool { return less_than_k_list_.size() + equal_to_k_list_.size() >= replacer_size_; }
 
   auto GetTime() {
     auto end = std::chrono::steady_clock::now();
@@ -151,11 +151,13 @@ class LRUKReplacer {
   size_t replacer_size_;
   std::chrono::time_point<std::chrono::steady_clock> start_;
   size_t k_;
-  std::shared_mutex rwlatch_;
-  std::list<std::pair<frame_id_t, std::deque<size_t>>> list_;
+  std::mutex latch_;
+  std::list<std::pair<std::deque<size_t>, frame_id_t>> less_than_k_list_;
+  std::list<std::pair<std::deque<size_t>, frame_id_t>> equal_to_k_list_;
   // std::unordered_map<frame_id_t, std::pair<decltype(list_)::iterator, bool>> locator_;
-  std::vector<std::pair<decltype(list_)::iterator, bool>> locator_;
+  std::vector<decltype(less_than_k_list_)::iterator> less_locator_;
+  std::vector<decltype(equal_to_k_list_)::iterator> equal_locator_;
   std::vector<bool> vaild_;
+  std::vector<bool> evictable_;
 };
-
 }  // namespace bustub
