@@ -57,6 +57,12 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::SetNextPageId(page_id_t next_page_id) { next_pa
  * Helper method to find and return the key associated with input "index"(a.k.a
  * array offset)
  */
+
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::EntryAt(int index) const -> const MappingType & {
+  return array_[index];
+}
+
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::KeyAt(int index) const -> KeyType {
   // replace with your own code
@@ -77,6 +83,17 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::GetValue(const KeyType &key, const KeyComparato
   // common case
   result->push_back(find_result->second);
   return true;
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::GetIndex(const KeyType &key, const KeyComparator &comparator) -> int {
+  for (int i = 0; i < GetSize(); i++) {
+    auto result = comparator(key, array_[i].first);
+    if (result <= 0) {
+      return i;
+    }
+  }
+  return GetSize() - 1;
 }
 
 INDEX_TEMPLATE_ARGUMENTS

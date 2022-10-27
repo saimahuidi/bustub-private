@@ -102,6 +102,10 @@ class BPlusTree {
   auto FindLeafForRemove(Page *current_page, const KeyType &key, Transaction *, std::deque<Page *> &pages_need_lock)
       -> Page *;
 
+  // Remove with operation
+  auto FindLeftLeaf(Page *current_page, Transaction *, std::deque<Page *> &pages_need_lock)
+      -> Page *;
+
   // insert with split
   auto InsertWithSplit(const KeyType &key, const ValueType &value, Transaction *transaction,
                        std::deque<Page *> &pages_need_lock) -> bool;

@@ -8,12 +8,14 @@
 #include <utility>
 #include <vector>
 
+#include "buffer/buffer_pool_manager.h"
 #include "common/config.h"
 #include "common/exception.h"
 #include "common/logger.h"
 #include "common/rid.h"
 #include "concurrency/transaction.h"
 #include "storage/index/b_plus_tree.h"
+#include "storage/index/index_iterator.h"
 #include "storage/page/b_plus_tree_internal_page.h"
 #include "storage/page/b_plus_tree_leaf_page.h"
 #include "storage/page/b_plus_tree_page.h"
@@ -271,6 +273,31 @@ auto BPLUSTREE_TYPE::FindLeafForRemove(Page *current_page, const KeyType &key, T
   return current_page;
 }
 
+// get the left leaf
+INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::FindLeftLeaf(Page *current_page, Transaction *transaction,
+                              std::deque<Page *> &pages_need_lock) -> Page * {
+  // get the page
+  auto current_page_tree = reinterpret_cast<BPlusTreePage *>(current_page->GetData());
+  if (!current_page_tree->IsLeafPage()) {
+    // because i have hold the parent lock, i can check before hold lock
+    current_page->RLatch();
+    // clear parent lock
+    ClearLockSet(pages_need_lock, RWLOCK::readLock, false);
+    // add parent lock
+    AddIntoPageSetHelper(transaction, current_page);
+    pages_need_lock.push_back(current_page);
+    // find in child page
+    auto current_page_tree_internal = reinterpret_cast<InternalPage *>(current_page_tree);
+    page_id_t child_page_id = current_page_tree_internal->ValueAt(0);
+    Page *child_page = buffer_pool_manager_->FetchPage(child_page_id);
+    return FindLeftLeaf(child_page, transaction, pages_need_lock);
+  }
+  // find the leaf node
+  current_page->RLatch();
+  ClearLockSet(pages_need_lock, RWLOCK::readLock, false);
+  return current_page;
+}
 INDEX_TEMPLATE_ARGUMENTS
 void BPLUSTREE_TYPE::CreateRootPage() {
   sentinel_page_.WLatch();
@@ -486,7 +513,22 @@ void BPLUSTREE_TYPE::RemoveEntry(Page *current, const KeyType &key, Transaction 
  * @return : index iterator
  */
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::Begin() -> INDEXITERATOR_TYPE { return INDEXITERATOR_TYPE(); }
+auto BPLUSTREE_TYPE::Begin() -> INDEXITERATOR_TYPE {
+  // the btree is empty
+  if (IsEmpty()) {
+    return INDEXITERATOR_TYPE(true);
+  }
+  // lock the Sentinel page
+  sentinel_page_.RLatch();
+  AddIntoPageSetHelper(nullptr, &sentinel_page_);
+  // record the locks
+  std::deque<Page *> pages_need_lock;
+  pages_need_lock.push_back(&sentinel_page_);
+  // get the leaf_page with the lock
+  Page *root_page = buffer_pool_manager_->FetchPage(root_page_id_);
+  Page *leaf_page = FindLeftLeaf(root_page, nullptr, pages_need_lock);
+  return INDEXITERATOR_TYPE(buffer_pool_manager_, leaf_page);
+}
 
 /*
  * Input parameter is low key, find the leaf page that contains the input key
@@ -494,7 +536,22 @@ auto BPLUSTREE_TYPE::Begin() -> INDEXITERATOR_TYPE { return INDEXITERATOR_TYPE()
  * @return : index iterator
  */
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::Begin(const KeyType &key) -> INDEXITERATOR_TYPE { return INDEXITERATOR_TYPE(); }
+auto BPLUSTREE_TYPE::Begin(const KeyType &key) -> INDEXITERATOR_TYPE {
+  // the btree is empty
+  if (IsEmpty()) {
+    return INDEXITERATOR_TYPE(true);
+  }
+  // lock the Sentinel page
+  sentinel_page_.RLatch();
+  AddIntoPageSetHelper(nullptr, &sentinel_page_);
+  // record the locks
+  std::deque<Page *> pages_need_lock;
+  pages_need_lock.push_back(&sentinel_page_);
+  // get the leaf_page
+  Page *root_page = buffer_pool_manager_->FetchPage(root_page_id_);
+  Page *leaf_page = FindLeaf(root_page, key, RWLOCK::readLock, nullptr, pages_need_lock);
+  return INDEXITERATOR_TYPE(buffer_pool_manager_, leaf_page, key, comparator_);
+}
 
 /*
  * Input parameter is void, construct an index iterator representing the end
@@ -502,7 +559,9 @@ auto BPLUSTREE_TYPE::Begin(const KeyType &key) -> INDEXITERATOR_TYPE { return IN
  * @return : index iterator
  */
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::End() -> INDEXITERATOR_TYPE { return INDEXITERATOR_TYPE(); }
+auto BPLUSTREE_TYPE::End() -> INDEXITERATOR_TYPE {
+  return INDEXITERATOR_TYPE(true);
+}
 
 /**
  * @return Page id of the root of this tree
