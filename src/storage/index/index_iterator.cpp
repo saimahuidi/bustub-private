@@ -32,7 +32,8 @@ INDEXITERATOR_TYPE::IndexIterator(BufferPoolManager *bufferpoolmanager, Page *pa
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-INDEXITERATOR_TYPE::IndexIterator(BufferPoolManager *bufferpoolmanager, Page *page, const KeyType &key, KeyComparator &comp)
+INDEXITERATOR_TYPE::IndexIterator(BufferPoolManager *bufferpoolmanager, Page *page, const KeyType &key,
+                                  KeyComparator &comp)
     : bufferpoolmanager_(bufferpoolmanager) {
   current_page_ = page;
   current_page_btree_ = reinterpret_cast<LeafPage *>(current_page_->GetData());

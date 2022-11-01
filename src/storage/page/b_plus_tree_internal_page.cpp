@@ -72,9 +72,9 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::GetChildPageId(const KeyType &key, KeyCompa
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::GetSuitablePage(const ValueType &value, BPlusTreePage *&brother_tree_page,
-                                                     KeyType *&key_between, bool &left_or_not,
-                                                     BufferPoolManager *buffer_pool_manager_) -> bool {
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::GetSuitablePage(const ValueType &value, Page *&brother_page, KeyType *&key_between,
+                                                     bool &left_or_not, BufferPoolManager *buffer_pool_manager_)
+    -> bool {
   auto comp = [&value](MappingType &elem) -> int { return elem.second == value; };
   MappingType *find_result = std::find_if(array_, array_ + GetSize(), comp);
   assert(find_result != array_ + GetSize());
@@ -82,8 +82,9 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::GetSuitablePage(const ValueType &value, BPl
   if (find_result != array_) {
     auto leftchild_page_id = (find_result - 1)->second;
     Page *leftchild_page = buffer_pool_manager_->FetchPage(leftchild_page_id);
+    leftchild_page->WLatch();
     auto leftchild_page_btree = reinterpret_cast<BPlusTreePage *>(leftchild_page->GetData());
-    brother_tree_page = leftchild_page_btree;
+    brother_page = leftchild_page;
     key_between = &(find_result->first);
     left_or_not = true;
     return leftchild_page_btree->GetSize() == leftchild_page_btree->GetMinSize();
@@ -93,8 +94,9 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::GetSuitablePage(const ValueType &value, BPl
 
   auto rightchild_page_id = (find_result + 1)->second;
   Page *rightchild_page = buffer_pool_manager_->FetchPage(rightchild_page_id);
+  rightchild_page->WLatch();
   auto rightchild_page_btree = reinterpret_cast<BPlusTreePage *>(rightchild_page->GetData());
-  brother_tree_page = rightchild_page_btree;
+  brother_page = rightchild_page;
   key_between = &((find_result + 1)->first);
   left_or_not = false;
   return rightchild_page_btree->GetSize() == rightchild_page_btree->GetMinSize();
@@ -186,11 +188,12 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Coalesce(InternalPage *brother_page_btree, 
           (brother_page_btree->GetSize()) * sizeof(MappingType));
   array_[GetSize()].first = Key;
   IncreaseSize(brother_page_btree->GetSize());
+  brother_page_btree->SetSize(0);
   return true;
 }
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::StealEntry(InternalPage *brother_page_btree, KeyType &key_between,
-                                                bool left_or_right) -> bool {
+                                                bool left_or_right) -> page_id_t {
   auto brother_array = brother_page_btree->array_;
   if (left_or_right) {
     memmove(static_cast<void *>(array_ + 1), static_cast<void *>(array_), (GetSize()) * sizeof(MappingType));
@@ -199,16 +202,16 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::StealEntry(InternalPage *brother_page_btree
     (array_ + 1)->first = key_between;
     key_between = brother_array[brother_page_btree->GetSize()].first;
     IncreaseSize(1);
-  } else {
-    array_[GetSize()].second = brother_array[0].second;
-    array_[GetSize()].first = key_between;
-    key_between = brother_array[1].first;
-    brother_page_btree->IncreaseSize(-1);
-    memmove(static_cast<void *>(brother_array), static_cast<void *>(brother_array + 1),
-            (brother_page_btree->GetSize()) * sizeof(MappingType));
-    IncreaseSize(1);
+    return array_[0].second;
   }
-  return true;
+  array_[GetSize()].second = brother_array[0].second;
+  array_[GetSize()].first = key_between;
+  key_between = brother_array[1].first;
+  brother_page_btree->IncreaseSize(-1);
+  memmove(static_cast<void *>(brother_array), static_cast<void *>(brother_array + 1),
+          (brother_page_btree->GetSize()) * sizeof(MappingType));
+  IncreaseSize(1);
+  return array_[GetSize() - 1].second;
 }
 // valuetype for internalNode should be page id_t
 template class BPlusTreeInternalPage<GenericKey<4>, page_id_t, GenericComparator<4>>;

@@ -12,12 +12,14 @@
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
+#include <cstdlib>
 #include <cstring>
 #include <sstream>
 
 #include "buffer/buffer_pool_manager_instance.h"
 #include "common/config.h"
 #include "common/exception.h"
+#include "common/logger.h"
 #include "common/rid.h"
 #include "storage/page/b_plus_tree_leaf_page.h"
 #include "storage/page/b_plus_tree_page.h"
@@ -59,9 +61,7 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::SetNextPageId(page_id_t next_page_id) { next_pa
  */
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::EntryAt(int index) const -> const MappingType & {
-  return array_[index];
-}
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::EntryAt(int index) const -> const MappingType & { return array_[index]; }
 
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::KeyAt(int index) const -> KeyType {
@@ -129,7 +129,10 @@ INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::InsertEntryWithSplit(const KeyType &key, const ValueType &value,
                                                       const KeyComparator &comparator, KeyType *new_key,
                                                       LeafPage *new_page_btree) -> bool {
-  assert(GetSize() == GetMaxSize());
+  if (GetSize() != GetMaxSize()) {
+    LOG_DEBUG("max size = %d current size = %d", GetMaxSize(), GetSize());
+    abort();
+  }
   // copy another part to the new node
   // insert the new key/value to the suitable page
   bool result;

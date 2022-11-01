@@ -11,7 +11,11 @@
 //===----------------------------------------------------------------------===//
 
 #include <algorithm>
+#include <cstdint>
 #include <cstdio>
+#include <cstdlib>
+#include <fstream>
+#include <vector>
 
 #include "buffer/buffer_pool_manager_instance.h"
 #include "gtest/gtest.h"
@@ -100,7 +104,7 @@ TEST(BPlusTreeTests, DeleteTest2) {
   auto *disk_manager = new DiskManager("test.db");
   BufferPoolManager *bpm = new BufferPoolManagerInstance(50, disk_manager);
   // create b+ tree
-  BPlusTree<GenericKey<8>, RID, GenericComparator<8>> tree("foo_pk", bpm, comparator);
+  BPlusTree<GenericKey<8>, RID, GenericComparator<8>> tree("foo_pk", bpm, comparator, 4, 5);
   GenericKey<8> index_key;
   RID rid;
   // create transaction
@@ -111,13 +115,19 @@ TEST(BPlusTreeTests, DeleteTest2) {
   auto header_page = bpm->NewPage(&page_id);
   (void)header_page;
 
-  std::vector<int64_t> keys = {1, 2, 3, 4, 5};
+  std::vector<int64_t> keys{};
+  keys.reserve(1000);
+  for (int i = 0; i < 1000; ++i) {
+    keys.push_back(random());
+  }
   for (auto key : keys) {
     int64_t value = key & 0xFFFFFFFF;
     rid.Set(static_cast<int32_t>(key >> 32), value);
     index_key.SetFromInteger(key);
     tree.Insert(index_key, rid, transaction);
   }
+
+  dynamic_cast<BufferPoolManagerInstance *>(bpm)->PrintData();
 
   std::vector<RID> rids;
   for (auto key : keys) {
@@ -130,11 +140,18 @@ TEST(BPlusTreeTests, DeleteTest2) {
     EXPECT_EQ(rids[0].GetSlotNum(), value);
   }
 
-  std::vector<int64_t> remove_keys = {1, 5, 3, 4};
+  std::vector<int64_t> remove_keys(keys);
+  int i{0};
   for (auto key : remove_keys) {
+    if (i == 800) {
+      break;
+    }
     index_key.SetFromInteger(key);
     tree.Remove(index_key, transaction);
+    i++;
   }
+
+  tree.Draw(bpm, "/home/jackson/tmp/tree-after.txt");
 
   int64_t size = 0;
   bool is_present;
@@ -154,9 +171,22 @@ TEST(BPlusTreeTests, DeleteTest2) {
     }
   }
 
-  EXPECT_EQ(size, 1);
+  EXPECT_EQ(size, keys.size() - i);
+  std::vector<int64_t> keys2{};
+  keys2.reserve(1000);
+  for (int i = 1000; i < 2000; ++i) {
+    keys2.push_back(i);
+  }
+  for (auto key : keys2) {
+    int64_t value = key & 0xFFFFFFFF;
+    rid.Set(static_cast<int32_t>(key >> 32), value);
+    index_key.SetFromInteger(key);
+    tree.Insert(index_key, rid, transaction);
+  }
 
   bpm->UnpinPage(HEADER_PAGE_ID, true);
+  dynamic_cast<BufferPoolManagerInstance *>(bpm)->PrintData();
+
   delete transaction;
   delete disk_manager;
   delete bpm;

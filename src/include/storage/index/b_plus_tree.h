@@ -54,6 +54,8 @@ class BPlusTree {
   // Returns true if this B+ tree has no keys and values.
   auto IsEmpty() const -> bool;
 
+  auto IsEmptyInternal() const -> bool;
+
   // Insert a key-value pair into this B+ tree.
   auto Insert(const KeyType &key, const ValueType &value, Transaction *transaction = nullptr) -> bool;
 
@@ -93,25 +95,24 @@ class BPlusTree {
 
  private:
   // search for the leaf
-  auto FindLeaf(Page *current_page, const KeyType &key, RWLOCK locktype, Transaction *,
+  auto FindLeaf(Page *current_page, const KeyType &key, RWLOCK locktype, Transaction *transaction,
                 std::deque<Page *> &pages_need_lock) -> Page *;
   // search for the leaf with split
-  auto FindLeafForInsert(Page *current_page, const KeyType &key, Transaction *, std::deque<Page *> &pages_need_lock)
-      -> Page *;
+  auto FindLeafForInsert(Page *current_page, const KeyType &key, Transaction *transaction,
+                         std::deque<Page *> &pages_need_lock) -> Page *;
   // Remove with operation
-  auto FindLeafForRemove(Page *current_page, const KeyType &key, Transaction *, std::deque<Page *> &pages_need_lock)
-      -> Page *;
+  auto FindLeafForRemove(Page *current_page, const KeyType &key, Transaction *transaction,
+                         std::deque<Page *> &pages_need_lock) -> Page *;
 
   // Remove with operation
-  auto FindLeftLeaf(Page *current_page, Transaction *, std::deque<Page *> &pages_need_lock)
-      -> Page *;
+  auto FindLeftLeaf(Page *current_page, Transaction *transaction, std::deque<Page *> &pages_need_lock) -> Page *;
 
   // insert with split
   auto InsertWithSplit(const KeyType &key, const ValueType &value, Transaction *transaction,
                        std::deque<Page *> &pages_need_lock) -> bool;
 
-  void InsertEntry(Page *current, const KeyType &key, const ValueType &value, Transaction *transaction,
-                   std::deque<Page *> &pages_need_lock);
+  auto InsertEntry(Page *leaf_page, const KeyType &key, const ValueType &value, Transaction *transaction,
+                   std::deque<Page *> &pages_need_lock) -> bool;
 
   void InsertEntryParent(Page *Internal_page, const KeyType &key, const page_id_t &value, Transaction *transaction,
                          std::deque<Page *> &pages_need_lock);
@@ -120,13 +121,13 @@ class BPlusTree {
 
   void RemoveEntry(Page *current, const KeyType &key, Transaction *transaction, std::deque<Page *> &pages_need_lock);
 
-  void InsertUpdateRoot(Page *);
+  auto InsertUpdateRoot(Page *page, std::deque<Page *> &pages_need_lock) -> bool;
   // create the new root page
-  void CreateRootPage();
+  auto CreateRootPage(const KeyType &key, const ValueType &value, Transaction *transaction) -> bool;
   // delete the new root page
   void DeleteRootPage();
   // change to the new root page
-  void ChangeRootPage(page_id_t, page_id_t, Transaction *);
+  void ChangeRootPage(page_id_t new_root_id, page_id_t delete_page_id, Transaction *transaction);
   // clear the transection
   void ClearLockSet(std::deque<Page *> &pages_need_lock, RWLOCK locktype, bool is_dirty);
 

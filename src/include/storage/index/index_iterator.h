@@ -29,9 +29,9 @@ class IndexIterator {
  public:
   // you may define your own constructor based on your member variables
   IndexIterator();
-  IndexIterator(BufferPoolManager *, Page *);
-  IndexIterator(BufferPoolManager *, Page *, const KeyType &, KeyComparator &);
-  explicit IndexIterator(bool);
+  IndexIterator(BufferPoolManager *bufferPoolManager, Page *page);
+  IndexIterator(BufferPoolManager *bufferPoolManager, Page *page, const KeyType &key, KeyComparator &comparator);
+  explicit IndexIterator(bool is_end);
   ~IndexIterator();  // NOLINT
 
   auto IsEnd() -> bool;

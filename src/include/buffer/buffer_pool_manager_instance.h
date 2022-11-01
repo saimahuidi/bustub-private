@@ -177,6 +177,9 @@ class BufferPoolManagerInstance : public BufferPoolManager {
     // This is a no-nop right now without a more complex data structure to track deallocated pages
   }
 
+ public:
+  void PrintData();
+
   // TODO(student): You may add additional private members and helper functions
  private:
   auto FindFreeFrame(frame_id_t &frame_id) -> bool;

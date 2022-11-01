@@ -52,14 +52,14 @@ class BPlusTreeInternalPage : public BPlusTreePage {
   void SetKeyAt(int index, const KeyType &key);
   auto ValueAt(int index) const -> ValueType;
   auto GetChildPageId(const KeyType &key, KeyComparator &comparator) -> ValueType;
-  auto GetSuitablePage(const ValueType &value, BPlusTreePage *&brother_tree_page, KeyType *&key_between,
-                       bool &left_or_not, BufferPoolManager *buffer_pool_manager_) -> bool;
+  auto GetSuitablePage(const ValueType &value, Page *&brother_page, KeyType *&key_between, bool &left_or_not,
+                       BufferPoolManager *buffer_pool_manager_) -> bool;
   auto InsertEntry(const KeyType &key, const ValueType &value, KeyComparator &comparator) -> bool;
   auto InsertEntryWithSplit(const KeyType &key, const ValueType &value, KeyComparator &comparator, KeyType *new_key,
                             InternalPage *new_page_btree) -> bool;
   auto RemoveEntry(const KeyType &keye, const KeyComparator &comparator) -> bool;
   auto Coalesce(InternalPage *brother_page_btree, const KeyType &Key) -> bool;
-  auto StealEntry(InternalPage *, KeyType &key_between, bool left_or_not) -> bool;
+  auto StealEntry(InternalPage *brother_page_btree, KeyType &key_between, bool left_or_right) -> page_id_t;
 
  private:
   // Flexible array member for page data.

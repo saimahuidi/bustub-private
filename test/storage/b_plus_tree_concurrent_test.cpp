@@ -312,10 +312,10 @@ TEST(BPlusTreeConcurrentTest, MixTest) {
   for (int i = 6; i <= 10; i++) {
     keys.push_back(i);
   }
-  LaunchParallelTest(1, InsertHelper, &tree, keys);
+  LaunchParallelTest(10, InsertHelper, &tree, keys);
   // concurrent delete
   std::vector<int64_t> remove_keys = {1, 4, 3, 5, 6};
-  LaunchParallelTest(1, DeleteHelper, &tree, remove_keys);
+  LaunchParallelTest(10, DeleteHelper, &tree, remove_keys);
 
   int64_t start_key = 2;
   int64_t size = 0;
@@ -327,6 +327,7 @@ TEST(BPlusTreeConcurrentTest, MixTest) {
   EXPECT_EQ(size, 5);
 
   bpm->UnpinPage(HEADER_PAGE_ID, true);
+  dynamic_cast<BufferPoolManagerInstance *>(bpm)->PrintData();
   delete disk_manager;
   delete bpm;
   remove("test.db");

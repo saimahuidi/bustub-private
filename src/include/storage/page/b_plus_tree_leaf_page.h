@@ -60,11 +60,11 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   auto GetIndex(const KeyType &key, const KeyComparator &comparator) -> int;
   auto KeyExist(const KeyType &key, const KeyComparator &comparator) -> bool;
   auto InsertEntry(const KeyType &key, const ValueType &value, const KeyComparator &comparator) -> bool;
-  auto InsertEntryWithSplit(const KeyType &key, const ValueType &value, const KeyComparator &comparator, KeyType *,
-                            LeafPage *) -> bool;
+  auto InsertEntryWithSplit(const KeyType &key, const ValueType &value, const KeyComparator &comparator,
+                            KeyType *new_key, LeafPage *new_page_btree) -> bool;
   auto RemoveEntry(const KeyType &keye, const KeyComparator &comparator) -> bool;
-  auto Coalesce(LeafPage *) -> bool;
-  auto StealEntry(LeafPage *, KeyType &key_between, bool left_or_not) -> bool;
+  auto Coalesce(LeafPage *brother_page_btree) -> bool;
+  auto StealEntry(LeafPage *brother_page_btree, KeyType &key_between, bool left_or_right) -> bool;
 
  private:
   page_id_t next_page_id_;

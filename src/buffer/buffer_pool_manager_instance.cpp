@@ -12,11 +12,14 @@
 
 #include "buffer/buffer_pool_manager_instance.h"
 #include <endian.h>
+#include <cstdlib>
+#include <iostream>
 #include <mutex>  // NOLINT
 #include <shared_mutex>
 
 #include "common/config.h"
 #include "common/exception.h"
+#include "common/logger.h"
 #include "common/macros.h"
 #include "storage/disk/disk_manager.h"
 #include "storage/page/page.h"
@@ -77,7 +80,8 @@ auto BufferPoolManagerInstance::NewPgImp(page_id_t *page_id) -> Page * {
   // 1 from the freelist
   frame_id_t new_frame_id;
   if (!FindFreeFrame(new_frame_id)) {
-    return nullptr;
+    LOG_DEBUG("(NewPgImp) no free frame");
+    abort();
   }  // insert the new page
   Page &new_page = pages_[new_frame_id];
   replacer_->RecordAccess(new_frame_id);
@@ -92,7 +96,8 @@ auto BufferPoolManagerInstance::NewPgImp(page_id_t *page_id) -> Page * {
 auto BufferPoolManagerInstance::FetchPgImp(page_id_t page_id) -> Page * {
   std::unique_lock<std::shared_mutex> buffer_lock(rwlatch_);
   if (page_id >= next_page_id_ && page_id < 0) {
-    return nullptr;
+    LOG_DEBUG("Not vaild page number %d\n", page_id);
+    abort();
   }
   frame_id_t frame_id;
   // search the page table
@@ -104,7 +109,8 @@ auto BufferPoolManagerInstance::FetchPgImp(page_id_t page_id) -> Page * {
   }
   // find the free frame
   if (!FindFreeFrame(frame_id)) {
-    return nullptr;
+    LOG_DEBUG("(fetchPgImp) No enough frame");
+    abort();
   }
   Page &new_page = pages_[frame_id];
   disk_manager_->ReadPage(page_id, new_page.GetData());
@@ -143,6 +149,7 @@ auto BufferPoolManagerInstance::DeletePgImp(page_id_t page_id) -> bool {
     return true;
   }
   if (pages_[frame_id].pin_count_ > 0) {
+    LOG_DEBUG("fail to delete %d becatse pin_count_ > 0", page_id);
     return false;
   }
   page_table_->Remove(page_id);
@@ -164,7 +171,12 @@ auto BufferPoolManagerInstance::DeletePgImp(page_id_t page_id) -> bool {
 auto BufferPoolManagerInstance::UnpinPgImp(page_id_t page_id, bool is_dirty) -> bool {
   std::unique_lock<std::shared_mutex> buffer_lock(rwlatch_);
   frame_id_t frame_id;
-  if (!page_table_->Find(page_id, frame_id) || pages_[frame_id].pin_count_ <= 0) {
+  if (!page_table_->Find(page_id, frame_id)) {
+    LOG_DEBUG("Not vaild page %d", page_id);
+    return false;
+  }
+  if (pages_[frame_id].pin_count_ <= 0) {
+    LOG_DEBUG("page %d 's pin_count <= 0", page_id);
     return false;
   }
   Page &old_page = pages_[frame_id];
@@ -177,5 +189,14 @@ auto BufferPoolManagerInstance::UnpinPgImp(page_id_t page_id, bool is_dirty) -> 
 }
 
 auto BufferPoolManagerInstance::AllocatePage() -> page_id_t { return next_page_id_++; }
+
+void BufferPoolManagerInstance::PrintData() {
+  for (size_t i = 0; i < this->pool_size_; i++) {
+    frame_id_t tmp;
+    if (page_table_->Find(i, tmp)) {
+      std::cout << "frame_id = " << tmp << " pin count = " << pages_[tmp].pin_count_ << std::endl;
+    }
+  }
+}
 
 }  // namespace bustub
