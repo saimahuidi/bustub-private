@@ -143,15 +143,15 @@ TEST(BPlusTreeTests, DeleteTest2) {
   std::vector<int64_t> remove_keys(keys);
   int i{0};
   for (auto key : remove_keys) {
-    if (i == 800) {
-      break;
-    }
+    // if (i == 800) {
+    //   break;
+    // }
     index_key.SetFromInteger(key);
     tree.Remove(index_key, transaction);
     i++;
   }
 
-  tree.Draw(bpm, "/home/jackson/tmp/tree-after.txt");
+  // tree.Draw(bpm, "/home/jackson/tmp/tree-after.txt");
 
   int64_t size = 0;
   bool is_present;

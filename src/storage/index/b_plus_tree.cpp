@@ -322,7 +322,6 @@ void BPLUSTREE_TYPE::ChangeRootPage(page_id_t new_root_id, page_id_t delete_page
     buffer_pool_manager_->UnpinPage(new_root_id, true);
   }
   buffer_pool_manager_->UnpinPage(delete_page_id, true);
-  buffer_pool_manager_->DeletePage(delete_page_id);
   transaction->AddIntoDeletedPageSet(delete_page_id);
 }
 
@@ -537,7 +536,7 @@ void BPLUSTREE_TYPE::RemoveEntry(Page *current, const KeyType &key, Transaction 
       buffer_pool_manager_->UnpinPage(current_tree_page->GetPageId(), true);
       auto delete_page_id = brother_tree_page->GetPageId();
       buffer_pool_manager_->UnpinPage(delete_page_id, true);
-      buffer_pool_manager_->DeletePage(delete_page_id);
+      transaction->AddIntoDeletedPageSet(delete_page_id);
       RemoveEntry(parent_page, *key_between, transaction, pages_need_lock);
     } else {
       // redistribution

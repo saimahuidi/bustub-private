@@ -296,7 +296,7 @@ TEST(BPlusTreeConcurrentTest, MixTest) {
   auto *disk_manager = new DiskManager("test.db");
   BufferPoolManager *bpm = new BufferPoolManagerInstance(50, disk_manager);
   // create b+ tree
-  BPlusTree<GenericKey<8>, RID, GenericComparator<8>> tree("foo_pk", bpm, comparator);
+  BPlusTree<GenericKey<8>, RID, GenericComparator<8>> tree("foo_pk", bpm, comparator, 4, 5);
   GenericKey<8> index_key;
 
   // create and fetch header_page
@@ -309,13 +309,23 @@ TEST(BPlusTreeConcurrentTest, MixTest) {
 
   // concurrent insert
   keys.clear();
-  for (int i = 6; i <= 10; i++) {
-    keys.push_back(i);
+  keys.reserve(5000);
+  for (int i = 0; i < 5000; ++i) {
+    keys.push_back(random());
   }
-  LaunchParallelTest(10, InsertHelper, &tree, keys);
+  LaunchParallelTest(1, InsertHelper, &tree, keys);
   // concurrent delete
-  std::vector<int64_t> remove_keys = {1, 4, 3, 5, 6};
-  LaunchParallelTest(10, DeleteHelper, &tree, remove_keys);
+  LaunchParallelTest(1, DeleteHelper, &tree, keys);
+
+  // concurrent insert
+  keys.clear();
+  keys.reserve(5000);
+  for (int i = 0; i < 5000; ++i) {
+    keys.push_back(random());
+  }
+  LaunchParallelTest(1, InsertHelper, &tree, keys);
+  // concurrent delete
+  LaunchParallelTest(1, DeleteHelper, &tree, keys);
 
   int64_t start_key = 2;
   int64_t size = 0;
@@ -324,10 +334,12 @@ TEST(BPlusTreeConcurrentTest, MixTest) {
     size = size + 1;
   }
 
-  EXPECT_EQ(size, 5);
+  tree.Draw(bpm, "/home/jackson/tmp/tree-after.txt");
+
+  EXPECT_EQ(size, 4);
 
   bpm->UnpinPage(HEADER_PAGE_ID, true);
-  dynamic_cast<BufferPoolManagerInstance *>(bpm)->PrintData();
+  // dynamic_cast<BufferPoolManagerInstance *>(bpm)->PrintData();
   delete disk_manager;
   delete bpm;
   remove("test.db");
