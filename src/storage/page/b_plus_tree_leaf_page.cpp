@@ -15,6 +15,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <sstream>
+#include <utility>
 
 #include "buffer/buffer_pool_manager_instance.h"
 #include "common/config.h"
@@ -61,7 +62,17 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::SetNextPageId(page_id_t next_page_id) { next_pa
  */
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::EntryAt(int index) const -> const MappingType & { return array_[index]; }
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::EntryAt(int index) const -> MappingType { return array_[index]; }
+
+INDEX_TEMPLATE_ARGUMENTS
+void B_PLUS_TREE_LEAF_PAGE_TYPE::GetNextTuple(std::pair<page_id_t, int> &location) {
+  if (location.second < GetSize() - 1) {
+    ++location.second;
+    return;
+  }
+  location.first = GetNextPageId();
+  location.second = 0;
+}
 
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::KeyAt(int index) const -> KeyType {

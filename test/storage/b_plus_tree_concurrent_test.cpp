@@ -11,9 +11,12 @@
 //===----------------------------------------------------------------------===//
 
 #include <chrono>  // NOLINT
+#include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <functional>
 #include <thread>  // NOLINT
+#include <vector>
 
 #include "buffer/buffer_pool_manager_instance.h"
 #include "gtest/gtest.h"
@@ -304,28 +307,26 @@ TEST(BPlusTreeConcurrentTest, MixTest) {
   auto header_page = bpm->NewPage(&page_id);
   (void)header_page;
   // first, populate index
-  std::vector<int64_t> keys = {1, 2, 3, 4, 5};
-  InsertHelper(&tree, keys);
-
+  std::vector<int64_t> keys;
   // concurrent insert
+  srand(5);
   keys.clear();
-  keys.reserve(5000);
-  for (int i = 0; i < 5000; ++i) {
-    keys.push_back(random());
+  keys.reserve(50000);
+  for (int i = 0; i < 50000; ++i) {
+    keys.push_back(rand());
   }
   LaunchParallelTest(1, InsertHelper, &tree, keys);
-  // concurrent delete
   LaunchParallelTest(1, DeleteHelper, &tree, keys);
 
-  // concurrent insert
-  keys.clear();
-  keys.reserve(5000);
-  for (int i = 0; i < 5000; ++i) {
-    keys.push_back(random());
-  }
-  LaunchParallelTest(1, InsertHelper, &tree, keys);
-  // concurrent delete
-  LaunchParallelTest(1, DeleteHelper, &tree, keys);
+  // // concurrent insert
+  // keys.clear();
+  // keys.reserve(5000);
+  // for (int i = 0; i < 5000; ++i) {
+  //   keys.push_back(random());
+  // }
+  // LaunchParallelTest(1, InsertHelper, &tree, keys);
+  // // concurrent delete
+  // LaunchParallelTest(1, DeleteHelper, &tree, keys);
 
   int64_t start_key = 2;
   int64_t size = 0;
@@ -336,7 +337,7 @@ TEST(BPlusTreeConcurrentTest, MixTest) {
 
   tree.Draw(bpm, "/home/jackson/tmp/tree-after.txt");
 
-  EXPECT_EQ(size, 4);
+  EXPECT_EQ(size, 0);
 
   bpm->UnpinPage(HEADER_PAGE_ID, true);
   // dynamic_cast<BufferPoolManagerInstance *>(bpm)->PrintData();

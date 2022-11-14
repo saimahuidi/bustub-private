@@ -13,14 +13,21 @@
  * For range scan of b+ tree
  */
 #pragma once
+#include <utility>
 #include "buffer/buffer_pool_manager.h"
 #include "common/config.h"
+#include "concurrency/transaction.h"
 #include "storage/page/b_plus_tree_leaf_page.h"
+#include "storage/page/b_plus_tree_page.h"
 #include "storage/page/page.h"
 
 namespace bustub {
 
 #define INDEXITERATOR_TYPE IndexIterator<KeyType, ValueType, KeyComparator>
+#define BPLUSTREE_TYPE BPlusTree<KeyType, ValueType, KeyComparator>
+
+INDEX_TEMPLATE_ARGUMENTS
+class BPlusTree;
 
 INDEX_TEMPLATE_ARGUMENTS
 class IndexIterator {
@@ -28,11 +35,10 @@ class IndexIterator {
 
  public:
   // you may define your own constructor based on your member variables
-  IndexIterator();
-  IndexIterator(BufferPoolManager *bufferPoolManager, Page *page);
-  IndexIterator(BufferPoolManager *bufferPoolManager, Page *page, const KeyType &key, KeyComparator &comparator);
-  explicit IndexIterator(bool is_end);
-  ~IndexIterator();  // NOLINT
+
+  IndexIterator(BPLUSTREE_TYPE *bplus_tree, std::pair<page_id_t, int> location);
+
+  ~IndexIterator() = default;  // NOLINT
 
   auto IsEnd() -> bool;
 
@@ -40,26 +46,15 @@ class IndexIterator {
 
   auto operator++() -> IndexIterator &;
 
-  auto operator==(const IndexIterator &itr) const -> bool {
-    if (is_end_ && itr.is_end_) {
-      return true;
-    }
-    if (is_end_ || itr.is_end_) {
-      return false;
-    }
-    return current_page_btree_ == itr.current_page_btree_ && index_in_leaf_ == itr.index_in_leaf_;
-  }
+  auto operator==(const IndexIterator &itr) const -> bool { return location_ == itr.location_; }
 
   auto operator!=(const IndexIterator &itr) const -> bool { return !(*this == itr); }
 
  private:
   // add your own private member variables here
-  Page *current_page_;
-  LeafPage *current_page_btree_;
-  BufferPoolManager *bufferpoolmanager_;
-  int index_in_leaf_;
-  int leaf_size_;
-  bool is_end_;
+  BPLUSTREE_TYPE *bplus_tree_;
+  std::pair<page_id_t, int> location_;
+  MappingType value_;
 };
 
 }  // namespace bustub

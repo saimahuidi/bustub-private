@@ -176,7 +176,7 @@ class Catalog {
    * @param table_oid The OID of the table to query
    * @return A (non-owning) pointer to the metadata for the table
    */
-  auto GetTable(table_oid_t table_oid) -> TableInfo * {
+  auto GetTable(table_oid_t table_oid) const -> TableInfo * {
     auto meta = tables_.find(table_oid);
     if (meta == tables_.end()) {
       return NULL_TABLE_INFO;
@@ -333,6 +333,7 @@ class Catalog {
 
   auto GetTableNames() -> std::vector<std::string> {
     std::vector<std::string> result;
+    result.reserve(table_names_.size());
     for (const auto &x : table_names_) {
       result.push_back(x.first);
     }

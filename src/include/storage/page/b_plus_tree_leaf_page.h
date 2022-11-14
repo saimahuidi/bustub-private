@@ -55,7 +55,8 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   auto GetNextPageId() const -> page_id_t;
   void SetNextPageId(page_id_t next_page_id);
   auto KeyAt(int index) const -> KeyType;
-  auto EntryAt(int index) const -> const MappingType &;
+  auto EntryAt(int index) const -> MappingType;
+  void GetNextTuple(std::pair<page_id_t, int> &location);
   auto GetValue(const KeyType &key, const KeyComparator &comparator, std::vector<ValueType> *result = nullptr) -> bool;
   auto GetIndex(const KeyType &key, const KeyComparator &comparator) -> int;
   auto KeyExist(const KeyType &key, const KeyComparator &comparator) -> bool;

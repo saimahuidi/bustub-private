@@ -574,16 +574,18 @@ auto BPLUSTREE_TYPE::Begin() -> INDEXITERATOR_TYPE {
   sentinel_page_.RLatch();
   if (IsEmptyInternal()) {
     sentinel_page_.RUnlatch();
-    return INDEXITERATOR_TYPE(true);
+    return End();
   }
-  AddIntoPageSetHelper(nullptr, &sentinel_page_);
   // record the locks
   std::deque<Page *> pages_need_lock;
   pages_need_lock.push_back(&sentinel_page_);
   // get the leaf_page with the lock
   Page *root_page = buffer_pool_manager_->FetchPage(root_page_id_);
   Page *leaf_page = FindLeftLeaf(root_page, nullptr, pages_need_lock);
-  return INDEXITERATOR_TYPE(buffer_pool_manager_, leaf_page);
+  auto page_id = leaf_page->GetPageId();
+  leaf_page->RUnlatch();
+  buffer_pool_manager_->UnpinPage(page_id, false);
+  return INDEXITERATOR_TYPE(this, {page_id, 0});
 }
 
 /*
@@ -597,16 +599,19 @@ auto BPLUSTREE_TYPE::Begin(const KeyType &key) -> INDEXITERATOR_TYPE {
   sentinel_page_.RLatch();
   if (IsEmptyInternal()) {
     sentinel_page_.RUnlatch();
-    return INDEXITERATOR_TYPE(true);
+    return End();
   }
-  AddIntoPageSetHelper(nullptr, &sentinel_page_);
   // record the locks
   std::deque<Page *> pages_need_lock;
   pages_need_lock.push_back(&sentinel_page_);
-  // get the leaf_page
+  // get the leaf_page with the lock
   Page *root_page = buffer_pool_manager_->FetchPage(root_page_id_);
   Page *leaf_page = FindLeaf(root_page, key, RWLOCK::readLock, nullptr, pages_need_lock);
-  return INDEXITERATOR_TYPE(buffer_pool_manager_, leaf_page, key, comparator_);
+  auto page_id = leaf_page->GetPageId();
+  auto slot_num = reinterpret_cast<LeafPage *>(leaf_page->GetData())->GetIndex(key, comparator_);
+  leaf_page->RUnlatch();
+  buffer_pool_manager_->UnpinPage(page_id, false);
+  return INDEXITERATOR_TYPE(this, {page_id, slot_num});
 }
 
 /*
@@ -615,7 +620,7 @@ auto BPLUSTREE_TYPE::Begin(const KeyType &key) -> INDEXITERATOR_TYPE {
  * @return : index iterator
  */
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::End() -> INDEXITERATOR_TYPE { return INDEXITERATOR_TYPE(true); }
+auto BPLUSTREE_TYPE::End() -> INDEXITERATOR_TYPE { return INDEXITERATOR_TYPE(this, {INVALID_PAGE_ID, 0}); }
 
 /**
  * @return Page id of the root of this tree

@@ -29,6 +29,7 @@
 namespace bustub {
 
 #define BPLUSTREE_TYPE BPlusTree<KeyType, ValueType, KeyComparator>
+#define INDEXITERATOR_TYPE IndexIterator<KeyType, ValueType, KeyComparator>
 
 /**
  * Main class providing the API for the Interactive B+ Tree.
@@ -47,6 +48,7 @@ class BPlusTree {
   using InternalPage = BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator>;
   using LeafPage = BPlusTreeLeafPage<KeyType, ValueType, KeyComparator>;
 
+  friend class INDEXITERATOR_TYPE; 
  public:
   explicit BPlusTree(std::string name, BufferPoolManager *buffer_pool_manager, const KeyComparator &comparator,
                      int leaf_max_size = LEAF_PAGE_SIZE, int internal_max_size = INTERNAL_PAGE_SIZE);

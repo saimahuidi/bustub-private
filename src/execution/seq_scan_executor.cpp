@@ -10,14 +10,34 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <memory>
+
+#include "common/macros.h"
 #include "execution/executors/seq_scan_executor.h"
+#include "execution/plans/seq_scan_plan.h"
+#include "storage/table/table_iterator.h"
 
 namespace bustub {
 
-SeqScanExecutor::SeqScanExecutor(ExecutorContext *exec_ctx, const SeqScanPlanNode *plan) : AbstractExecutor(exec_ctx) {}
+SeqScanExecutor::SeqScanExecutor(ExecutorContext *exec_ctx, const SeqScanPlanNode *plan)
+    : AbstractExecutor(exec_ctx),
+      plan_(plan),
+      table_{exec_ctx_->GetCatalog()->GetTable(plan_->GetTableOid())->table_.get()} {}
 
-void SeqScanExecutor::Init() { throw NotImplementedException("SeqScanExecutor is not implemented"); }
+void SeqScanExecutor::Init() {
+    BUSTUB_ENSURE(!tuple_iterator_.has_value(), "Double init\n")
+    tuple_iterator_.emplace(table_->Begin(exec_ctx_->GetTransaction()));
+}
 
-auto SeqScanExecutor::Next(Tuple *tuple, RID *rid) -> bool { return false; }
+auto SeqScanExecutor::Next(Tuple *tuple, RID *rid) -> bool {
+    BUSTUB_ENSURE(tuple_iterator_.has_value(), "Not init in SeqScanExecutor\n")
+    if (tuple_iterator_.value() == table_->End()) {
+        return false;
+    }
+    *tuple = *(tuple_iterator_.value());
+    *rid = tuple->GetRid();
+    ++tuple_iterator_.value();
+    return true;
+}
 
 }  // namespace bustub
