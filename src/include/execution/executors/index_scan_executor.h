@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <optional>
 #include <vector>
 
 #include "common/rid.h"
@@ -20,13 +21,21 @@
 #include "execution/plans/index_scan_plan.h"
 #include "storage/index/b_plus_tree_index.h"
 #include "storage/index/index.h"
+#include "storage/index/index_iterator.h"
+#include "storage/index/int_comparator.h"
 #include "storage/table/tuple.h"
+#include "type/integer_type.h"
+#include "type/type_id.h"
 
 namespace bustub {
 
 /**
  * IndexScanExecutor executes an index scan over a table.
  */
+
+#define OneIntegerColumnArguments = <IntegerType, RID, IntComparator>;
+using BPlusTreeIndexForOneIntegerColumn = BPlusTreeIndex<IntegerType, RID, IntComparator>;
+using BPlusTreeIndexForOneIntegerColumnIterator =IndexIterator<IntegerType, RID, IntComparator>;
 
 class IndexScanExecutor : public AbstractExecutor {
  public:
@@ -46,5 +55,7 @@ class IndexScanExecutor : public AbstractExecutor {
  private:
   /** The index scan plan node to be executed. */
   const IndexScanPlanNode *plan_;
+  BPlusTreeIndexForOneIntegerColumn *tree_;
+  std::optional<BPlusTreeIndexForOneIntegerColumnIterator> index_iterator_;
 };
 }  // namespace bustub
