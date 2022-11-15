@@ -17,7 +17,7 @@ auto SeqScanPlanNode::InferScanSchema(const BoundBaseTableRef &table) -> Schema 
   std::vector<Column> schema;
   for (const auto &column : table.schema_.GetColumns()) {
     auto col_name = fmt::format("{}.{}", table.GetBoundTableName(), column.GetName());
-    schema.emplace_back(Column(col_name, column));
+    schema.emplace_back(col_name, column);
   }
   return Schema(schema);
 }
@@ -54,7 +54,7 @@ auto ProjectionPlanNode::RenameSchema(const Schema &schema, const std::vector<st
   }
   size_t idx = 0;
   for (const auto &column : schema.GetColumns()) {
-    output.emplace_back(Column(col_names[idx++], column));
+    output.emplace_back(col_names[idx++], column);
   }
   return Schema(output);
 }
@@ -65,11 +65,11 @@ auto AggregationPlanNode::InferAggSchema(const std::vector<AbstractExpressionRef
   std::vector<Column> output;
   output.reserve(group_bys.size() + aggregates.size());
   for (const auto &column : group_bys) {
-    output.emplace_back(Column("<unnamed>", column->GetReturnType()));
+    output.emplace_back("<unnamed>", column->GetReturnType());
   }
   for (size_t idx = 0; idx < aggregates.size(); idx++) {
     // TODO(chi): correctly infer agg call return type
-    output.emplace_back(Column("<unnamed>", TypeId::INTEGER));
+    output.emplace_back("<unnamed>", TypeId::INTEGER);
   }
   return Schema(output);
 }

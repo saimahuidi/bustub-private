@@ -22,16 +22,16 @@ namespace bustub {
 SeqScanExecutor::SeqScanExecutor(ExecutorContext *exec_ctx, const SeqScanPlanNode *plan)
     : AbstractExecutor(exec_ctx),
       plan_(plan),
-      table_{exec_ctx_->GetCatalog()->GetTable(plan_->GetTableOid())->table_.get()} {}
+      table_info_{exec_ctx_->GetCatalog()->GetTable(plan_->GetTableOid())} {}
 
 void SeqScanExecutor::Init() {
     BUSTUB_ENSURE(!tuple_iterator_.has_value(), "Double init\n")
-    tuple_iterator_.emplace(table_->Begin(exec_ctx_->GetTransaction()));
+    tuple_iterator_.emplace(table_info_->table_->Begin(exec_ctx_->GetTransaction()));
 }
 
 auto SeqScanExecutor::Next(Tuple *tuple, RID *rid) -> bool {
     BUSTUB_ENSURE(tuple_iterator_.has_value(), "Not init in SeqScanExecutor\n")
-    if (tuple_iterator_.value() == table_->End()) {
+    if (tuple_iterator_.value() == table_info_->table_->End()) {
         return false;
     }
     *tuple = *(tuple_iterator_.value());
