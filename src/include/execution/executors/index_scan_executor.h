@@ -34,10 +34,6 @@ namespace bustub {
  * IndexScanExecutor executes an index scan over a table.
  */
 
-#define OneIntegerColumnArguments = <IntegerType, RID, IntComparator>;
-using BPlusTreeIndexForOneIntegerColumn = BPlusTreeIndex<IntegerType, RID, IntComparator>;
-using BPlusTreeIndexForOneIntegerColumnIterator =IndexIterator<IntegerType, RID, IntComparator>;
-
 class IndexScanExecutor : public AbstractExecutor {
  public:
   /**
@@ -58,6 +54,6 @@ class IndexScanExecutor : public AbstractExecutor {
   const IndexScanPlanNode *plan_;
   BPlusTreeIndexForOneIntegerColumn *tree_;
   TableInfo *table_info_;
-  std::optional<BPlusTreeIndexForOneIntegerColumnIterator> index_iterator_;
+  std::optional<BPlusTreeIndexIteratorForOneIntegerColumn> index_iterator_;
 };
 }  // namespace bustub

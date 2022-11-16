@@ -39,6 +39,7 @@ class SeqScanExecutor : public AbstractExecutor {
   SeqScanExecutor(ExecutorContext *exec_ctx, const SeqScanPlanNode *plan);
 
   /** Initialize the sequential scan */
+  void extracted();
   void Init() override;
 
   /**

@@ -17,11 +17,10 @@ IndexScanExecutor::IndexScanExecutor(ExecutorContext *exec_ctx, const IndexScanP
     : AbstractExecutor(exec_ctx),
       plan_(plan),
       tree_(reinterpret_cast<BPlusTreeIndexForOneIntegerColumn *>(
-          exec_ctx->GetCatalog()->GetIndex(plan->GetIndexOid()))), 
+          exec_ctx->GetCatalog()->GetIndex(plan->GetIndexOid())->index_.get())),
       table_info_(exec_ctx->GetCatalog()->GetTable(tree_->GetMetadata()->GetTableName())) {}
 
 void IndexScanExecutor::Init() {
-  BUSTUB_ENSURE(!index_iterator_.has_value(), "Double Init\n");
   index_iterator_.emplace(tree_->GetBeginIterator());
 }
 

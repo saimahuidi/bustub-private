@@ -13,6 +13,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <utility>
 
 #include "execution/executor_context.h"
@@ -53,8 +54,26 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
   auto GetOutputSchema() const -> const Schema & override { return plan_->OutputSchema(); };
 
  private:
+  auto MakeTuple(Tuple &left_tuple, Tuple &right_tuple) -> Tuple {
+    std::vector<Value> values;
+    values.reserve(GetOutputSchema().GetColumnCount());
+    auto column_count = left_executor_->GetOutputSchema().GetColumnCount();
+    for (size_t i{0}; i < column_count; ++i) {
+      values.emplace_back(left_tuple.GetValue(&left_executor_->GetOutputSchema(), i));
+    }
+    column_count = right_executor_->GetOutputSchema().GetColumnCount();
+    for (size_t i{0}; i < column_count; ++i) {
+      values.emplace_back(right_tuple.GetValue(&right_executor_->GetOutputSchema(), i));
+    }
+    return Tuple{std::move(values), &GetOutputSchema()};
+  }
   /** The NestedLoopJoin plan node to be executed. */
   const NestedLoopJoinPlanNode *plan_;
+  std::unique_ptr<AbstractExecutor> left_executor_;
+  std::unique_ptr<AbstractExecutor> right_executor_;
+  std::optional<Tuple> left_tuple_;
+  Tuple empty_right_tuple_;
+  bool at_least_once_match_;
 };
 
 }  // namespace bustub

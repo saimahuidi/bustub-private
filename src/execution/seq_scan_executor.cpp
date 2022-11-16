@@ -25,12 +25,11 @@ SeqScanExecutor::SeqScanExecutor(ExecutorContext *exec_ctx, const SeqScanPlanNod
       table_info_{exec_ctx_->GetCatalog()->GetTable(plan_->GetTableOid())} {}
 
 void SeqScanExecutor::Init() {
-    BUSTUB_ENSURE(!tuple_iterator_.has_value(), "Double init\n")
     tuple_iterator_.emplace(table_info_->table_->Begin(exec_ctx_->GetTransaction()));
 }
 
 auto SeqScanExecutor::Next(Tuple *tuple, RID *rid) -> bool {
-    BUSTUB_ENSURE(tuple_iterator_.has_value(), "Not init in SeqScanExecutor\n")
+    BUSTUB_ENSURE(tuple_iterator_.has_value(), "Not init in SeqScanExecutor\n");
     if (tuple_iterator_.value() == table_info_->table_->End()) {
         return false;
     }

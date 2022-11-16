@@ -10,6 +10,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -41,14 +43,21 @@ auto InsertExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool {
   Tuple new_tuple{};
   RID new_rid{};
   int count{};
-  // get the insert typle
+  std::vector<std::vector<uint32_t>> index_arrs(index_infoes_.size());
+  for (size_t i{0}; i < index_infoes_.size(); ++i) {
+    auto index_info{index_infoes_[i]};
+    for (auto &column : index_info->key_schema_.GetColumns()) {
+      index_arrs[i].push_back(table_info_->schema_.GetColIdx(column.GetName()));
+    }
+  }
+  // get the insert tuple
   while (child_executor_->Next(&new_tuple, &new_rid)) {
     // insert in the table
     table_->InsertTuple(new_tuple, &new_rid, exec_ctx_->GetTransaction());
     // update the indexes
-    for (auto index_info : index_infoes_) {
-      Tuple key_tuple{new_tuple.KeyFromTuple(table_info_->schema_, index_info->key_schema_,
-                                             index_info->key_schema_.GetUnlinedColumns())};
+    for (size_t i{0}; i < index_infoes_.size(); ++i) {
+      auto index_info{index_infoes_[i]};
+      Tuple key_tuple{new_tuple.KeyFromTuple(table_info_->schema_, index_info->key_schema_, index_arrs[i])};
       index_info->index_->InsertEntry(key_tuple, new_rid, exec_ctx_->GetTransaction());
     }
     ++count;

@@ -54,23 +54,25 @@ auto INDEXITERATOR_TYPE::operator++() -> INDEXITERATOR_TYPE & {
   page->RLatch();
   // get the value
   auto page_btree_leaf = reinterpret_cast<LeafPage *>(page->GetData());
+  page_id_t pre_page_id{location_.first};
   page_btree_leaf->GetNextTuple(location_);
   if (location_.first != INVALID_PAGE_ID) {
-    if (location_.first == page->GetPageId()) {
+    if (location_.first == pre_page_id) {
       value_ = page_btree_leaf->EntryAt(location_.second);
     } else {
       // free previous page
       page->RUnlatch();
-      buffer_pool_manager->UnpinPage(location_.first, false);
+      buffer_pool_manager->UnpinPage(page->GetPageId(), false);
       // get new page
       auto page = buffer_pool_manager->FetchPage(location_.first);
       page->RLatch();
+      page_btree_leaf = reinterpret_cast<LeafPage *>(page->GetData());
       value_ = page_btree_leaf->EntryAt(location_.second);
     }
   }
   // release lock and free page
   page->RUnlatch();
-  buffer_pool_manager->UnpinPage(location_.first, false);
+  buffer_pool_manager->UnpinPage(page->GetPageId(), false);
   return *this;
 }
 
