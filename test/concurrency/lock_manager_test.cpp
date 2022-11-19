@@ -4,10 +4,14 @@
 
 #include "concurrency/lock_manager.h"
 
+#include <iostream>
+#include <ostream>
 #include <random>
 #include <thread>  // NOLINT
 
 #include "common/config.h"
+#include "common/exception.h"
+#include "concurrency/transaction.h"
 #include "concurrency/transaction_manager.h"
 #include "gtest/gtest.h"
 
@@ -109,7 +113,7 @@ void TableLockTest1() {
     delete txns[i];
   }
 }
-TEST(LockManagerTest, DISABLED_TableLockTest1) { TableLockTest1(); }  // NOLINT
+TEST(LockManagerTest, TableLockTest1) { TableLockTest1(); }  // NOLINT
 
 /** Upgrading single transaction from S -> X */
 void TableLockUpgradeTest1() {
@@ -134,7 +138,15 @@ void TableLockUpgradeTest1() {
 
   delete txn1;
 }
-TEST(LockManagerTest, DISABLED_TableLockUpgradeTest1) { TableLockUpgradeTest1(); }  // NOLINT
+TEST(LockManagerTest, TableLockUpgradeTest1) {
+  try {
+    TableLockUpgradeTest1();
+  } catch (TransactionAbortException &e) {
+    std::cout << e.GetInfo() << std::endl;
+  } catch (Exception &e) {
+    std::cout << e.what() << std::endl;
+  }
+}  // NOLINT
 
 void RowLockTest1() {
   LockManager lock_mgr{};
@@ -190,7 +202,16 @@ void RowLockTest1() {
     delete txns[i];
   }
 }
-TEST(LockManagerTest, DISABLED_RowLockTest1) { RowLockTest1(); }  // NOLINT
+TEST(LockManagerTest, RowLockTest1) {
+  try {
+    RowLockTest1();
+  } catch (TransactionAbortException &e) {
+    std::cout << e.GetInfo() << std::endl;
+  } catch (Exception &e) {
+    std::cout << e.what() << std::endl;
+  }
+
+}  // NOLINT
 
 void TwoPLTest1() {
   LockManager lock_mgr{};
@@ -239,6 +260,15 @@ void TwoPLTest1() {
   delete txn;
 }
 
-TEST(LockManagerTest, DISABLED_TwoPLTest1) { TwoPLTest1(); }  // NOLINT
+TEST(LockManagerTest, TwoPLTest1) {
+  try {
+    TwoPLTest1();
+  } catch (TransactionAbortException &e) {
+    std::cout << e.GetInfo() << std::endl;
+  } catch (Exception &e) {
+    std::cout << e.what() << std::endl;
+  }
+
+}  // NOLINT
 
 }  // namespace bustub
