@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "common/rid.h"
+#include "concurrency/lock_manager.h"
 #include "execution/executors/insert_executor.h"
 #include "storage/table/tuple.h"
 #include "type/type_id.h"
@@ -34,7 +35,15 @@ InsertExecutor::InsertExecutor(ExecutorContext *exec_ctx, const InsertPlanNode *
       table_{table_info_->table_.get()},
       finished_(false) {}
 
-void InsertExecutor::Init() { child_executor_->Init(); }
+void InsertExecutor::Init() {
+  auto result = exec_ctx_->GetLockManager()->LockTable(exec_ctx_->GetTransaction(), LockManager::LockMode::EXCLUSIVE,
+                                                       table_info_->oid_);
+  if (!result) {
+    std::cout << "insert" << std::endl;
+    throw TransactionAbortException{exec_ctx_->GetTransaction()->GetTransactionId(), AbortReason::DEADLOCK};
+  }
+  child_executor_->Init();
+}
 
 auto InsertExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool {
   if (finished_) {
@@ -59,6 +68,8 @@ auto InsertExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool {
       auto index_info{index_infoes_[i]};
       Tuple key_tuple{new_tuple.KeyFromTuple(table_info_->schema_, index_info->key_schema_, index_arrs[i])};
       index_info->index_->InsertEntry(key_tuple, new_rid, exec_ctx_->GetTransaction());
+      exec_ctx_->GetTransaction()->GetIndexWriteSet()->emplace_back(
+          new_rid, table_info_->oid_, WType::INSERT, new_tuple, index_infoes_[i]->index_oid_, exec_ctx_->GetCatalog());
     }
     ++count;
   }
